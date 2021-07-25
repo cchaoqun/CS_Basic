@@ -1534,7 +1534,7 @@ notify.c/notifyKeySpaceEvent
 
 
 
-# RDB持久化
+# RDB(Redis DataBase)持久化
 
 - RDB文件用于保存和还原Redis服务器所有数据库中的键值对数据
 - SAVE由服务器执行, 阻塞服务器
