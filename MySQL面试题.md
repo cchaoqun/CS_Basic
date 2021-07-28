@@ -90,6 +90,8 @@ MyISAM不支持事务和行级锁, 不支持外键, 索引数据分开存储, In
 
 # 索引
 
+## 什么情况下索引会失效？
+
 ## 什么是索引？
 
 - 针对数据页所做的目录就是索引
@@ -474,6 +476,10 @@ I隔离性由MVCC来保证
 D持久性由内存+redo log来保证，mysql修改数据同时在内存和redo log记录这次操作，事务提交的时候通过redo log刷盘，宕机的时候可以从redo log恢复
 
 ## MVCC原理
+
+
+
+## binlog，redolog，undolog三者的区别了解吗？
 
 
 
@@ -1161,6 +1167,8 @@ select id from t where name like ‘abc%’
   
 
 # 数据库优化
+
+## 如何做慢查询排查的？
 
 ## 为什么要优化
 

@@ -1,5 +1,7 @@
 # Java概述
 
+https://blog.csdn.net/qq_41701956/article/details/110119625?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522162548995616780271532360%2522%252C%2522scm%2522%253A%252220140713.130102334.pc%255Fall.%2522%257D&request_id=162548995616780271532360&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~first_rank_v2~hot_rank-3-110119625.pc_search_result_control_group&utm_term=%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E8%B0%83%E5%BA%A6%E7%AE%97%E6%B3%95%E5%92%8C%E9%A5%A5%E9%A5%BF%E9%97%AE%E9%A2%98+&spm=1018.2226.3001.4187
+
 ## JVM、JRE和JDK的关系
 
 JVM
@@ -2379,7 +2381,6 @@ java.lang.NullPointerException：空指针异常。当应用试图在要求使�
 java.lang.NumberFormatException：数字格式异常。当试图将一个String转换为指定的数字类型，而该字符串确不满足数字类型要求的格式时，抛出该异常。
 
 java.lang.StringIndexOutOfBoundsException：字符串索引越界异常。当使用索引值访问某个字符串中的字符，而该索引值小于0或大于等于序列大小时，抛出该异常。
-
 
 
 
