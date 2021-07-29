@@ -2460,9 +2460,8 @@ CAS的原理是拿期望的值和原本的一个值作比较，如果相同则�
 
 - 硬件层⾯，内存屏障分两种：读屏障（Load Barrier）和写屏障（Store Barrier）。内存屏障有两个作⽤：
   1. 阻⽌屏障两侧的指令重排序；
-  2. 强制把写缓冲区/⾼速缓存中的脏数据等写回主内存，或者让缓存中相应的数据
-     失效。
-
+  2. 强制把写缓冲区/⾼速缓存中的脏数据等写回主内存，或者让缓存中相应的数据失效。
+  
 - 编译器在⽣成字节码时，会在指令序列中插⼊内存屏障来禁⽌特定类型的处理器重
   排序。编译器选择了⼀个⽐较保守的JMM内存屏障插⼊策略，这样可以保证在任何
   处理器平台，任何程序中都能得到正确的volatile内存语义。这个策略是：
@@ -3273,16 +3272,18 @@ Executor框架最核心的类是ThreadPoolExecutor，它是线程池的实现类
   1. 线程1从DelayQueue中获取已到期的ScheduledFutureTask（DelayQueue.take()）。到期任务是指ScheduledFutureTask的time大于等于当前时间。
     1. 获取Lock。
     2. 获取周期任务。
-      1. 如果PriorityQueue为空，当前线程到Condition中等待；否则执行下面的2.2。
-      2. 如果PriorityQueue的头元素的time时间比当前时间大，到Condition中等待到time时间；否则执行下面的2.3。
-      3. 获取PriorityQueue的头元素（2.3.1）；如果PriorityQueue不为空，则唤醒在Condition中等待的所有线程（2.3.2）。
+          1. 如果PriorityQueue为空，当前线程到Condition中等待；否则执行下面的2.2。
+              2. 如果PriorityQueue的头元素的time时间比当前时间大，到Condition中等待到time时间；否则执行下面的2.3。
+                  3. 获取PriorityQueue的头元素（2.3.1）；如果PriorityQueue不为空，则唤醒在Condition中等待的所有线程（2.3.2）。
     3. 释放Lock。
+  
       - ScheduledThreadPoolExecutor在一个循环中执行步骤2，直到线程从PriorityQueue获取到一个元素之后（执行2.3.1之后），才会退出无限循环（结束步骤2）。
   2. 线程1执行这个ScheduledFutureTask。
   3. 线程1修改ScheduledFutureTask的time变量为下次将要被执行的时间。
   4. 线程1把这个修改time之后的ScheduledFutureTask放回DelayQueue中（DelayQueue.add()）
     1. 获取Lock。
     2. 添加任务。
+  
       - 向PriorityQueue添加任务。
       - 如果在上面2.1中添加的任务是PriorityQueue的头元素，唤醒在Condition中等待的所有线程。
     3. 释放Lock。
