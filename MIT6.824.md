@@ -622,8 +622,6 @@ http://nil.csail.mit.edu/6.824/2020/papers/raft-extended.pdf
    2. 当不能提交的时候结束循环
 2. 提交过log以后向notifyCh发送一个空消息表示提交了日志
 
-
-
 ### 心跳机制
 
 #### AppendEntries RPC
@@ -651,6 +649,31 @@ http://nil.csail.mit.edu/6.824/2020/papers/raft-extended.pdf
 - 一次leader的选举过程可能需要经历很多轮, 因为即便每个raft election timeout 都不同, 还是一轮会有多个candidate, 进而导致投票的分散
 - 那么我们就需要将这个election timeout尽可能的短, 这样一旦超时就可以迅速进行选主阶段, 
 - 而不是等待很长时间的election timeout 才发现当前leader已经失效了, 才开始选主, 这样因为比较长的election timeout就会导致从上一个leader失效到下一个leader选出来开始接受服务的时间很长
+
+
+
+### 应用日志到状态机 (Apply Log)
+
+applyTimer.c计时器结束机会主动开始apply logEntry 到本地的状态机
+
+1. 需要将从上一次lastAppliedlog 到当前commitIndex中间的logEntries都需要apply, 这些都已经标记为提交, 所以可以提交
+2. 如果 rf.lastApplied < rf.lastSnapshotIndex 
+   1. 说明当前raft落后于上次快照的状态
+   2. 需要创建一个ApplyMsg结构体, 
+      1. commandValid = false, command=updateBySnapshot, commandIndex = lastSnapshotIndex
+3. 如果 rf.commitIndex <= rf.lastApplied
+   1. 说明当前已提交的log落后于上次已经applied过的
+   2. 不apply
+4. 否则说明当前应该更新 [rf.lastApplied+1:rf.commitIndex ]范围内的logEntry
+   1. 创建区间长度的ApplyMsg[]数组
+   2. 遍历区间的每个logEnrty 创建一个ApplyMsg结构体,
+   3. 传入logEntry中的信息
+5. 遍历每个ApplyMsg[]数组中的ApplyMsg, 发送到applyCh
+6. 更新rf.lastApplied为最后一个apply的index
+
+
+
+
 
 
 
@@ -691,6 +714,325 @@ http://nil.csail.mit.edu/6.824/2020/papers/raft-extended.pdf
     - ReadRaftState()
   - 每次状态的改变都会将最新的状态保存到 Persister中
     -  SaveRaftState()
+
+#### SavePersistAndSnapshot 保存快照
+
+1. logIndex < rf.lastSnapshotIndex
+   1. 拒绝保存, 当前请求保存的数据不如上次快照的数据新, 
+2. logIndex > rf.commitIndex
+   1. 拒绝保存, 当前请求保存的数据中含有未提交的数据, 这些数据没有被复制到超过一半的raft peer中
+3. 可以保存
+   1. 本地日志集合中以及快照的数据可以删除
+   2. 更新lastSnapshotIndex  lastSnapshotTerm
+   3. 持久化当前raft的状态
+      1. term commitIndex, logEntries...
+   4. 调用persister的持久化方法保存raft状态数据和快照数据
+      1. 快照数据是上一次快照到当前提交的数据之间的数据
+
+
+
+#### sendInstallSnapshot
+
+向指定的raft peer发送自己的快照数据要求其将logEntry更新快照数据
+
+1. 获取自己的快照数据, 封装成InstallSnapshotArgsh结构体
+   1. term leaderId, lastSnapshotIndex, lastSnapshotTerm Data
+2. 设置RPCTimer 作为本次RPC通信每轮的时间限制
+3. 需要循环发送RPC直到对方安装快照成功, 
+4. 建立replyCh chan bool, 用来接收raft peer对于本次RPC通信的回复
+5. 通过labrpc.call 进行发送方和接收方的通信
+6. 将通信的回复结果发送到replyCh 自己在后面接收
+7. 不论是RPCTimer结束 或者 收到通信失败都继续下一轮
+8. 通信成功, 查看回复
+   1. 如果 reply.Term > rf.currentTerm
+      1. 说明发送方已经落后与接收方, 变成Follower, 重置心跳计时器, term变成接收方的term
+
+#### InstallSnapshot
+
+1. args.Term < rf.currentTerm
+   1. 请求方落后于接收方, 拒绝
+2. rf.lastSnapshotIndex > args.LastIncludedIndex
+   1. 接收方快照领先于发送方 拒绝
+3. args.Term > rf.currentTerm || rf.role != Follower
+   1. 发送方领先于接收方
+   2. 安装快照, 接收方更新自己信息为发送方
+4. 计算需要安装的快照范围, 即哪些logEntry需要被更新
+   1. start := args.LastIncludedIndex - rf.lastSnapshotIndex 开始更新的起始log索引
+   2. start<0 报错, 说明请求方快照落后于接收方 但是这种情况以及在之前处理过了
+   3. start >= len(rf.logEntries)
+      1. 说明接收方落后了超过整个快照
+      2. 直接重新创建logEntry日志集合, 日志中只存放快照的最后一个
+   4. start < len(rf.logEntries)
+      1. 更新本地日志集合为 start以后的日志项
+5. 调用Persister.SaveStateAndSnapshot方法持久化快照数据和raft的状态数据
+
+
+
+# LAB3
+
+构建一个基于Raft复制状态机的k/v存储系统, 提供 Get Put Append三个方法
+
+服务提供了强一致性
+
+> 所谓的强一致性（线性一致性）并不是指集群中所有节点在任一时刻的状态必须完全一致，而是指一个目标，即让一个分布式系统看起来只有一个数据副本，并且读写操作都是原子的，这样应用层就可以忽略系统底层多个数据副本间的同步问题。也就是说，我们可以将一个强一致性分布式系统当成一个整体，一旦某个客户端成功的执行了写操作，那么所有客户端都一定能读出刚刚写入的值。即使发生网络分区故障，或者少部分节点发生异常，整个集群依然能够像单机一样提供服务。
+
+“**像单机一样提供服务**”从感官上描述了一个线性一致性系统应该具备的特性，那么我们该如何判断一个系统是否具备线性一致性呢？通俗来说就是不能读到旧（stale）数据，但具体分为两种情况：
+
+- 对于调用时间存在重叠（**并发**）的请求，生效顺序可以任意确定。
+- 对于调用时间存在先后关系（**偏序**）的请求，后一个请求不能违背前一个请求确定的结果。
+
+
+
+## 3A Key/value service without log compaction
+
+每一个KVServer都一个相关联的Raft Server, 所有的client请求必须请求到对应Raft leader的那个Server
+
+KVServer 将Put/Append/Get请求发送给自己的raft, 这样raft 保存着所有操作命令的log
+
+所有的KVServer都根据自己的Raft 的logEntry按顺序执行日志中的命令, 然后apply到自己的K/V数据库中
+
+当一个客户端请求到不是Leader的KVServer的时候, 或者无法和服务端通信, 会尝试另一个KVServer
+
+当KVServer将客户端的请求提交的时候(也会把日志apply到本地的状态机上), Leader会将结果通过RPC返回给客户端 
+
+如果这个请求提交失败, KVServer会返回error, 客户端再请求其他KVServer
+
+
+
+### Client.go
+
+#### Clerk 
+
+- Clerk 结构体代表客户端以及请求的命令信息
+  - servers []*labrpc.ClientEnd KVServer的数组
+  - size int KVServer的数量
+  - recentLeader int 上一次请求成功的KVServer的索引
+  - ClerkId
+    - Uid 每个客户端唯一的唯一id
+    - Seq 每有一个请求这个数字+1, 对于这个客户端全局唯一
+    - 这两个信息一起保证了一条命令的唯一性
+
+#### Get 
+
+1. req++ 代表了这个客户端增加了一条请求
+2. 将请求封装成GetRequest结构体
+   1. key
+   2. ClerkId
+3. 从上次请求成功的KVServer开始请求(因为上次是leader这次可能还是)
+4. 遍历每一个KVServer
+   1. 通过labrpc.call RPC请求KVServer
+   2. 如果KVServer回复成功
+      1. 更新recentLeader
+      2. 返回回复的resp.value
+   3. 不成功继续向下一个KVServer请求
+
+
+
+#### Put/Append
+
+1. req++ 代表了这个客户端增加了一条请求
+2. 将请求封装成 PutAppendRequest结构体
+   1. key value
+   2. OpType: Put|Append
+   3. ClerkId
+3. 从上次请求成功的KVServer开始请求
+4. 遍历每一个KVServer
+   1. 通过labrpc.call RPC请求KVServer
+   2. 如果KVServer回复成功
+      1. 更新recentLeader
+      2. 无返回值
+   3. 如果KVServer回复 重复的请求
+      1. 说明这次的请求在之前请求过并且已经成功提交apply到数据库
+      2. 但是因为当时处理请求的leader在提交log以后瞬间失效, 导致没有回复客户端成功, 
+      3. 所以当前客户端超时后重复发送请求
+      4. 但是因为我们会通过Clerk检测重复的请求, 会拦截, 保证每个请求最多只会执行一次
+   4. 不成功继续向下一个KVServer请求
+
+
+
+
+
+### Server.go
+
+#### KVServer
+
+- | 锁                                      | mu      sync.Mutex                                           |
+  | --------------------------------------- | ------------------------------------------------------------ |
+  | 自己在servers[]数组中的下标             | me      int                                                  |
+  | KVServer对应的raft peer                 | rf      *raft.Raft                                           |
+  | apply log 到对应数据库的chan            | applyCh chan raft.ApplyMsg                                   |
+  |                                         | dead    int32                                                |
+  | lock名字                                | lockName string                                              |
+  | lock时间                                | lockTime time.Time                                           |
+  | 当状态机达到这个大小就会执行快照        | maxraftstate int // snapshot if log grows this big           |
+  |                                         | lastIdx int                                                  |
+  | map[logIndex]map[Term]chan RaftResponse | distros map[int]map[int]chan RaftResponse // distribution channels |
+  | map[Clerk.Uid]Clerk.Seq                 | clients map[string]int64                   // sequence number for each known client |
+  | 数据库 map[key]value                    | state  map[string]string                 // state machine    |
+
+
+
+#### StartKVServer
+
+- 初始化KVServer 
+- 调用kv.executionLoop等待客户端请求
+- 返回生成的KVServer
+
+
+
+#### Get
+
+如果一个KVServer不是主要的保持一致的那一部分就不会处理客户端的Get()请求, 因为它存储的可能是过期的信息
+
+解决办法就是把Get也放入Log, 这样就会在达成一致后由leader返回给客户端
+
+1. 将客户端的请求封装成RaftRequest
+   1. key 
+   2. ClerkId
+   3. OpType
+2. 尝试将请求发送给对应的raft, 并且复制并apply这个log, 然后得到结果
+3. 将得到的结果返回给请求客户端
+
+#### PutAppend() and Get() RPC Handlers
+
+这些Handler通过Start()提交客户端的命令到Raft, 然后等待Op出现在 applyCh 
+
+1. 将客户端的请求封装成RaftRequest
+   1. key value
+   2. ClerkId
+   3. OpType
+2. 尝试将请求发送给对应的raft, 并且复制并apply这个log, 然后得到结果
+3. 将得到的结果返回给请求客户端
+
+
+
+#### raft.Start()
+
+传入请求参数后, 返回三个变量
+
+调用这个方法, raft会开始尝试将这个请求复制到所有的raft peers中, 如果复制成功并且提交,
+
+会返回
+
+- index 这个请求对应的log 在日志集合中的索引
+- term 这个请求提交成功时的term
+- isLeader 处理这个请求的raft是否是leader
+
+
+
+
+
+#### tryApplyAndGetResult
+
+1. 调用kv.rf.Start(req) 得到 index term isLeader
+   1. 如果对于raft不是leader isleader=false 说明请求到不是leader的KVServer 返回
+2. 创建一个用于接收raft回复的RaftResponse chan
+3. 根据 idnex , term 创建一个map  对应这个请求的 index -> term ->RaftResponse
+   1. distros map[index ]map[term ]chan RaftResponse 
+   2. 对应每一个成功提交的log 都有一个唯一的RaftResponse chan 与这个log的index  term 一一对应
+4. 设置本次apply的计时器
+5. 等待消息
+   1. RaftResponse的消息, 删除这个raftResponse chan 因为每个log都对应唯一的chan 不可以复用 返回结果给客户端
+   2. apply计时器 说明raft超时 删除这个raftResponse chan 返回
+
+
+
+#### executeLoop
+
+1. 循环等待客户端请求(等待kv.applyCh的消息)
+   1. 收到这个chan的消息说明当前的请求对应的log被提交了
+2. 从这个applyCh得到的消息中得到这个被提交的 请求在日志集合中的 index 对应提交时的term, 以及请求具体是什么r = ClerkId
+3. 检查这个请求是否是之前提交过的重复的请求, 因为没有及时得到回复重复提交的
+   1. 获取这个请求的序列号 seq := kv.clients[r.Uid]
+   2. 如果r.OpType != GET && r.Seq <= seq
+      1. 这是一个Put/Append请求, 并且请求的序列号<这个客户端最新的序列号, 表示这是这个客户端之前提交过请求
+      2. 通过 kv.distros\[idx][term]获取这个请求的唯一的chan RaftResponse 返回重复请求的信息
+      3. 从distros中删除这个请求对应de kv.distros\[idx][term]
+      4. 继续等待下一个请求
+4. 这个请求不是重复的, 更新这个客户端的最新的请求序列号  kv.clients[r.Uid] = r.Seq
+5. 根据请求的类型
+   1. GET
+      1. 获取对应key的value val := kv.state[r.Key]
+      2.  kv.distros\[idx][term] 获取请求对应的chan RaftResponse
+      3. 将val 已经成功的消息通过chan返回给客户端
+      4. 删除请求对应的唯一的chan
+   2. PUT
+      1. 将val插入数据库  kv.state[r.Key] = r.Value
+      2. kv.distros\[idx][term] 获取请求对应的chan RaftResponse
+      3. 将val 已经成功的消息通过chan返回给客户端
+      4. 删除请求对应的唯一的chan
+   3. Append
+      1. kv.state[r.Key] = kv.state[r.Key] + r.Value
+      2. kv.distros\[idx][term] 获取请求对应的chan RaftResponse
+      3. 将val 已经成功的消息通过chan返回给客户端
+      4. 删除请求对应的唯一的chan
+6. 如果当前raftstate已经达到了状态机的最大限制 maxraftstate 生成快照, 并且删除所有的commitIndex之前的请求相关的chan, 因为commitIndex之前的日志都已经生成了快照
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### Op
+
+描述了Put/Append/Get 操作的信息 (K,V)
+
+每一个Server提交log的时候都需要提交这些日志到本地状态机, 这样其他客户端请求可以看到之前的请求的结果 (出现在applyCh就提交)
+
+需要一个RPC Handler, 注意到Raft提交Op的时候, 就回复RPC
+
+
+
+
+
+
+
+
+
+#### edge case
+
+Cleark发送RPC给一个leader , leader提交了这个日志, 但是马上就断线了, 没有回复Cleark, 但是这个提交的日志会被已经复制过的raft都标记为commit 并且apply到本地状态机, 所以事实上这个Op已经作用到了数据库, 但是因为没有回复Cleark, Cleark还会继续发送这个Op到其他的服务器, 
+
+- 我们需要保证这种情况下, 一个相同的Op只会被执行一次, 即当这个Cleark向其他服务器发起同样的请求的时候, 这个请求不会被执行
+
+- 这样要求我们需要对每个客户端的请求做唯一性的确认, 通过请求Id和ClientId构成唯一的标识, 如果两个都相同, 不会被执行第二次
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
