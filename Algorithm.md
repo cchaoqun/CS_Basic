@@ -535,6 +535,44 @@ private int findMax(int[] num, int target){
 
 
 
+## 矩阵路径问题
+
+### 64. 最小路径和
+
+[64. 最小路径和](https://leetcode-cn.com/problems/minimum-path-sum/)
+
+- 思路, 
+  - dp 每个格子都只能有上面或者左边过来, 取两者最小
+  - 需要先初始化第一行第一列, 因为第一行只能由左边过来, 第一列只能由上面过来
+  - 从[1 ,1]开始,依次更新到这个位置的最小路径 上 左的较小值+本来的值
+  - 更新完 右下角的值就是最短路径和
+
+![image-20210805011844009](Algorithm.assets/image-20210805011844009.png)
+
+```java
+public int minPathSum(int[][] grid) {
+    if(grid==null || grid.length==0 || grid[0].length==0){
+        return 0;
+    }
+    int m = grid.length;
+    int n = grid[0].length;
+    for(int j=1; j<n; j++){
+        grid[0][j] += grid[0][j-1];
+    }
+    for(int i=1; i<m; i++){
+        grid[i][0] += grid[i-1][0];
+    }
+    for(int i=1; i<m; i++){
+        for(int j=1; j<n; j++){
+            grid[i][j] += Math.min(grid[i-1][j], grid[i][j-1]);
+        }
+    }
+    return grid[m-1][n-1];
+}
+```
+
+
+
 
 
 ## 正则表达式

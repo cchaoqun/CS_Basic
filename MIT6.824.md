@@ -970,24 +970,6 @@ KVServer 将Put/Append/Get请求发送给自己的raft, 这样raft 保存着所�
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #### Op
 
 描述了Put/Append/Get 操作的信息 (K,V)
@@ -995,10 +977,6 @@ KVServer 将Put/Append/Get请求发送给自己的raft, 这样raft 保存着所�
 每一个Server提交log的时候都需要提交这些日志到本地状态机, 这样其他客户端请求可以看到之前的请求的结果 (出现在applyCh就提交)
 
 需要一个RPC Handler, 注意到Raft提交Op的时候, 就回复RPC
-
-
-
-
 
 
 
@@ -1012,6 +990,212 @@ Cleark发送RPC给一个leader , leader提交了这个日志, 但是马上就断
 
 - 这样要求我们需要对每个客户端的请求做唯一性的确认, 通过请求Id和ClientId构成唯一的标识, 如果两个都相同, 不会被执行第二次
 
+# LAB4
+
+## 建立一个分片的存储系统
+
+- 分片: 表示把数据按照键分成多个部分, 每个分片都是整个数据的子集, 主要是为了提高性能
+- 每个复制的raft群体都可以负责处理一部分分片的 put get请求, 这些raft群体是并行处理的, 所以提高了整体的吞吐量
+
+## K/V分片存储系统的组成
+
+### 复制群体集合
+
+- 集合里的每个复制群体都负责了一部分分片的请求处理
+- 每个复制都是由一些KVServer组成, 这些KVServer使用Raft来复制群里的分片数据
+
+### 分片领主
+
+- 整个系统唯一的领主, 通过使用Raft提供服务
+- master决定了每个复制群体应该服务哪些分片, 这些信息叫做configuration, configuration会随着时间改变
+- Client询问Master来找到key对应的replicate group
+- replica group 询问master找到自己应该服务哪些shards
+
+### 分片迁移
+
+- 分片存储系统可以提供分片在不同复制群体间的迁移
+- 提供负载均衡, 某些复制群体也许承载了太多的分片, 所以分片的迁移可以使得分片分布更平均
+- 某些复制群体可能会下线, 新的复制群体也可能会加入, 所以分片需要在这些情况被移动
+
+### 处理reconfiguration
+
+#### 在分配分片到不同的复制群体时, 客户端的请求该如何处理?
+
+在一个复制群体内, 所有的群体成员都必须同意 reconfiguration 与 客户端的 Put/Append/Get 请求发生的相对时间关系
+
+- 客户端的PUT请求到来, 但是这个时候, 正好这个复制群体进行重新分片导致这个复制群体不在负责这个分片的请求,
+  - 这个复制群体里的所有的结点需要一致性的同意 这个PUT请求发生在reconfiguration之前还是之后
+    - 如果是之前, 那么负责这个分片的replica group 需要看见这个PUT的结果
+    - 如果之后, PUT不会生效, 客户端需要重新向这个分片的新的replica group 再次请求
+
+可以通过Raft把reconfiguration也当做log, 这样就可以保证replica group的leader处理这些请求, 以及线性一致性
+
+#### replica group之间的RPC通信
+
+replica group之间的分片是通过RPC进行, 
+
+- configuration 10 G1负责S1
+- configuration 11 G2负责S1
+- 在configuration 10到11之间, G1必须使用RPC把分片迁移到G2
+
+### Numbered Configuration 配置编号
+
+- shardMaster管理一系列numbered configuration
+
+- 每一个numbered configuration 都描述了replica group 和 分片的映射关系
+- 当映射关系改变的时候, 需要重新生成新的configuration 编号增加1
+
+## 4A The Shard Master 
+
+需要实现shards在不同的replica group之间的转移
+
+### Join
+
+- 加入一些新的 replica groups, 
+- 参数: map[GIDs]\<Server name>  replica group Identifier (GIDs) --> server name
+- masert创建新的configuration 包括新的replica groups, 并且尽可能少的移动shards
+- GIDs只要不存在在当前的configuration就可以被重用
+
+### Leave
+
+- 参数 []GIDS
+- 创建新的configuration 去除一些之前存在的GIDs, 
+- 将这个replica负责的shards均匀的分配到其他的replica groups
+
+### Move
+
+- 参数 shard number, GID
+- 创建新的configuration 将指定的 shard 分配给 GID对应的replica groups
+
+### Query
+
+- 参数 configuration number
+- 返回这个configuration number对应的configuration
+- 如果numer=-1 或者比当前最大的number还要大, 返回当前最大的configuration number对应的configuration
+
+
+
+### Client
+
+- 封装 Join/Leave/Move/Query 对应的参数到对应的 args结构体
+- 循环遍历每个server, 发送对应请求的RPC
+- 得到回复, 如果是操作成功的回复就返回, 否则继续向下一个server请求
+
+
+
+### ShardMaster
+
+#### ShardMaster{}
+
+相比KVServer多了
+
+- Config[] 保存每个numbered configuration对应的shards-->replicas group信息
+- client server都通过请求master的这个信息来得知自己负责哪些shards和key对应的shards是由哪个replica group负责
+
+#### Join/Leave/Move/Query Handler
+
+- 封装client的请求数据以及server的信息
+- 调用master的 tryApplyAndGetResult() 方法将这个请求apply到database
+
+
+
+####  tryApplyAndGetResult
+
+- 开始复制这个即将放到logEntry里面的请求
+
+1. 调用sc.rf.Start(req) 得到 index term isLeader
+   1. 如果对于raft不是leader isleader=false 说明请求到不是leader的KVServer 返回
+2. 创建一个用于接收raft回复的GeneralOutput chan 
+   1. ch := make(chan GeneralOutput, 1)
+3. 如果这个日志(通过index term确定唯一性)对应的Map不存在就创建一个
+   1. mm = make(map[int]chan GeneralOutput)
+   2. sc.sigChans[idx] = mm
+   3. mm[term] = ch
+   4. sigChans[index] = map[term]chan GeneralOutPut 通过 index-->term-->确定一个logEntry唯一的chan
+4. 设置本次apply的计时器
+5. 等待消息
+   1. GeneralOutPut的消息, 删除这个sigChans[index]  因为每个log都对应唯一的chan 不可以复用 返回结果给客户端
+   2. apply计时器 说明raft超时 删除这个raftResponse chan 返回
+
+#### executeLoop
+
+1. 循环等待客户端请求(等待kv.applyCh的消息)
+   1. 收到这个chan的消息说明当前的请求对应的log被提交了
+2. 从这个applyCh得到的消息中得到这个被提交的 
+   1. 请求在日志集合中的 index 
+   2. 对应提交时的term, 
+   3. 以及请求具体是什么r := msg.Command.(GeneralInput)
+3. 检查这个请求是否是之前提交过的重复的请求, 因为没有及时得到回复重复提交的
+   1. 获取这个请求的序列号 seq := sc.clientSeq[r.Uid]
+   2. 如果 r.OpType != QUERY && r.Seq <= seq
+      1. 这是一个Join/Leave/Move请求, 并且请求的序列号<这个客户端最新的序列号, 表示这是这个客户端之前提交过请求
+      2. 获得这个index term 对应log唯一的chan  sc.sigChans\[idx][term]
+      3. 向这个chan发送重复请求的信息
+      4. 从sigChans中删除这个chan, 因为这个请求已经执行过了
+      5. 继续等待下一个请求
+4. 根据这个提交请求的类型 r.OpType
+   1. Join
+      1. 获取replica group集合信息
+      2. 向replica group集合中加入新的replica group 调用joinGroups方法
+      3. 向这个log对应的chan发送成功的消息
+      4. 删除这个请求对应的chan  sigChan\[index][term]
+   2. Leave
+      1. 获取需要删除的replica group GIDs数组
+      2. 调用leaveGroup方法 创建新的configuration的时候删除数组中对应的replica groups
+      3. 向这个log对应的chan发送成功的消息
+      4. 删除这个请求对应的chan  sigChan\[index][term]
+   3. move
+      1. 获取指定的  shard-->replica group信息
+      2. 调用moveOneShard方法, 创建新的configuration的时候指定一个对应的 replica-shard关系
+      3. 向这个log对应的chan发送成功的消息
+      4. 删除这个请求对应的chan  sigChan\[index][term]
+   4. query
+      1. 获取请求的configuration对应的num
+      2. 如果 num != -1 && num < len(sc.configs) 
+         1. 这是一个存在的config 直接返回
+         2. 否则返回当前最新的config
+      3. 向这个log对应的chan发送成功的消息
+      4. 删除这个请求对应的chan  sigChan\[index][term]
+
+
+
+####  moveOneShard
+
+1. 获取上一个configuration lastConfig
+2. 新的Configuration的编号比上次+1
+3. replica group信息
+   1. 复制Groups属性 map\[int][]string 是GIDs-->server name的映射 
+4. shards信息
+   1. 复制Shards属性 Shards[s] 
+5. 分配move指定配对的 shards--replica group
+   1. newConfig.Shards[m.Shard] = m.GID
+6. 将这个新生成的config append到旧的configuration数组中
+
+
+
+#### joinGroups
+
+1. idx+ 复制 Groups shards信息
+2. 将新的replicas groups加入进来
+3. reallocate所有的shards使得尽量平均和尽量少的移动shards
+   1. reallocSlots
+4. 新的configuration append到config数组
+
+#### leaveGroups
+
+1. idx+ 复制 Groups 信息
+2. 删除leave的那些replica group
+3. reallocate所有的shards使得尽量平均和尽量少的移动shards
+   1. reallocSlots
+4. 新的configuration append到config数组
+
+#### reallocSlots
+
+1. 得到replica groups r, shards s的数量
+2.  s/r s%r 
+3. 先给每个replica 分配 s/r个 shards, 如果s%r还有剩余就分配一个
+
+ 
 
 
 
@@ -1019,14 +1203,53 @@ Cleark发送RPC给一个leader , leader提交了这个日志, 但是马上就断
 
 
 
+## 4B Sharded Key/Value Server 
+
+### shard KVServer
+
+- 每个server 都是replica group 的一部分
+
+- 每个replica group 处理一些shards 的 Put/Append/Get
+- 多个replica group合作处理所有的shards
+- master 分配shards到replica groups
+- 新的configuration创建, replica groups 之间互相传递shards 在这个过程中, client不会看见不一致的信息
+
+- 需要提供线性一致性, 每个完成的 Cleark.Get() Clerk.Put() Clerk.Append() 需要对所有的replicas 产生相同顺序的影响
+- Clerk.Get()可以看到最新的改变
+  - Get Put 同时到达, 并且这时正在发生configuration change 重新分片
+- 在保证超过一半的serves都可以工作的情况下, shards可以继续更新
+- 一个shard KVServer只属于一个replica group 并且每个replica group中的server不会改变
+
+### shard KVClient
+
+- 需要处理重复的client RPC请求
 
 
 
 
+### task1 single shard
+
+单一分片, server需要根据client的请求找到configuration中对应key所属的shards, 以及这个shards对应的replica group
+
+### task2 sharding change
+
+- server需要监视configuration 改变
+  - 每个100ms询问master是否有新的configuration
+- 当一个server检测到configuration改变, 开始shard 迁移
+  - 如果一个replica 不再负责一个shards, 马上停止接收对应shards的请求, 并且开始将shards转移到新的replica
+  - 如果一个replica收到更多的shards, 需要等待旧的owner将数据转移过来
 
 
 
+### Hints
 
+- server poll master获取最新的configuration, 失去对一个shards的ownership以后拒绝对应clients请求
+- 更新了configuration以后, 允许shards的旧Owner保持那部分shards数据
+- 当server通过RPC 会传输包含自己state信息的map的时候, 会产生死锁, 因为接受者需要读取map, 但是没有锁就没办法读, 所以需要传送一份map copy
+
+
+
+## 
 
 
 
@@ -1696,15 +1919,21 @@ Lease Read 可以认为是 Read Index 的时间戳版本，额外依赖时间戳
 
 ------
 
-以上就是 Raft 算法的核心内容及工程实践最需要考虑的内容。
-
-如果你坚持看了下来，相信已经对 Raft 算法的理论有了深刻的理解。当然，理论和工程实践之间存在的鸿沟可能比想象的还要大，实践中有众多的细节问题需要去面对。在后续的源码分析及实践篇中，我们会结合代码讲解到许多理论部分没有提到的这些细节点，并介绍基础架构设计的诸多经验，敬请期待！
 
 
-作者：Q的博客
-链接：https://juejin.cn/post/6907151199141625870
-来源：掘金
-著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+# 分布式事务
+
+
+
+
+
+# 分布式锁
+
+
+
+
+
+
 
 
 
