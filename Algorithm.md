@@ -649,10 +649,266 @@ public boolean matches(String s, String p, int i, int j) {
 
 # 单调栈
 
-- [316. 去除重复字母](https://leetcode-cn.com/problems/remove-duplicate-letters/) (困难)
-- [321. 拼接最大数](https://leetcode-cn.com/problems/create-maximum-number/) (困难)
-- [402. 移掉 K 位数字](https://leetcode-cn.com/problems/remove-k-digits/) (中等)
-- [1081. 不同字符的最小子序列](https://leetcode-cn.com/problems/smallest-subsequence-of-distinct-characters/) （中等）
+## 删除元素达到最大或者最小(单调栈+贪心)
+
+[ 42. 接雨水（困难）](https://leetcode-cn.com/problems/trapping-rain-water/)
+
+[ 739. 每日温度（中等）](https://leetcode-cn.com/problems/daily-temperatures/)
+
+[ 496. 下一个更大元素 I（简单）](https://leetcode-cn.com/problems/next-greater-element-i/)
+
+[ 901. 股票价格跨度（中等）](https://leetcode-cn.com/problems/online-stock-span/)
+
+[ 581. 最短无序连续子数组](https://leetcode-cn.com/problems/shortest-unsorted-continuous-subarray/)
+
+
+
+### 84. 柱状图中最大的矩形
+
+[84. 柱状图中最大的矩形](https://leetcode-cn.com/problems/largest-rectangle-in-histogram/)
+
+![image-20210804161125609](Algorithm.assets/image-20210804161125609.png)
+
+```java
+public int largestRectangleArea(int[] heights){
+    int len = heights.length;
+    if(len==0){
+        return 0;
+    }
+    if(len==1){
+        return heights[0];
+    }
+    int res = 0;
+    Deque<Integer> stack = new ArrayDeque<>();
+    for(int i=0; i<len; i++){
+        while(!stack.isEmpty() && heights[stack.peekLast()]>heights[i]){
+            int curHeight = heights[stack.pollLast()];
+            //找出之前连续的高度都是curHeight的数量
+            while(!stack.isEmpty() && heights[stack.peekLast()]==curHeight){
+                stack.pollLast();
+            }
+            int curWidth = 1;
+            if(stack.isEmpty()){
+                //i-(-1)+1-2 = i;
+				curWidth = i;
+            }else{
+                //i-stack.peekLast()+1-2 区间长度减去两边端点
+                curWidth = i-stack.peekLast()-1;
+            }
+            res = Math.max(res, curWidth*curHeight);
+        }
+        stack.addLast(i);
+    }
+    //处理剩余的柱子, 右端点都是确定的为len, 需要找到左端点
+    while(!stack.isEmpty()){
+        int curHeight = heights[stack.pollLast()];
+        while(!stack.isEmpty() && heights[stack.peekLast()]==curHeight){
+            stack.pollLast();
+        }
+        int curWidth = 0;
+        if(stack.isEmpty()){
+            //右端点 len 左端点 -1 ==> len-(-1)+1-2
+            curWidth = len;
+        }else{
+            curWidth = len-stack.peekLast()-1;
+        }
+        res = Math.max(res, curWidth*curHeight);
+    }
+    return res;
+    
+}
+```
+
+
+
+
+
+
+
+### 316. 去除重复字母
+
+[316. 去除重复字母](https://leetcode-cn.com/problems/remove-duplicate-letters/) (困难)
+
+[1081. 不同字符的最小子序列](https://leetcode-cn.com/problems/smallest-subsequence-of-distinct-characters/) （中等）
+
+- 思路:
+  - 维护一个栈, 保证栈中的元素(字符)都是从小到大排列的
+  - 从左到右扫描字符串, 
+    - 如果栈空直接入栈
+    - 如果当前元素<栈顶元素, 栈顶元素出栈直到当前元素>栈顶元素 或者栈空
+    - 如果大于栈顶元素 直接入栈
+  - 还需要保证每个字符都出现在栈中
+    - 在弹出栈顶字符时，如果字符串在后面的位置上再也没有这一字符，则不能弹出栈顶字符。为此，需要记录每个字符的剩余数量，当这个值为 00 时，就不能弹出栈顶字符了。
+  - 还需要保证每个字符只出现一次
+    - 在考虑字符 s[i]*s*[*i*] 时，如果它已经存在于栈中，则不能加入字符 s[i]*s*[*i*]。为此，需要记录每个字符是否出现在栈中。
+
+![image-20210804124212499](Algorithm.assets/image-20210804124212499.png)
+
+```java
+public String removeDuplicateLetters(String s) {
+    boolean[] visited = new boolean[26];
+    int[] cnt = new int[26];
+    Deque<Character> stack = new LinkedList<>();
+    StringBuffer sb = new StringBuffer();
+    for(char c : s.toCharArray()){
+        cnt[c-'a']++;
+    }
+    for(char c : s.toCharArray()){
+        //当前元素不在栈中
+        if(!visited[c-'a']){
+            //栈顶元素>当前元素
+            while(!stack.isEmpty() && stack.peekLast()>c){
+                char curTop = stack.peekLast();
+                //栈顶元素后面还有剩余
+                if(cnt[curTop-'a']>0){
+                    stack.pollLast();
+                    visited[curTop-'a'] = false;
+                }else{
+                    //没有剩余不能出栈
+                    break;
+                }
+            }
+            //当前元素入栈
+            stack.addLast(c);
+            //标记访问
+            visited[c-'a'] = true;
+        }
+        //当前元素剩余个数-1
+        cnt[c-'a']--;
+    }
+    while(!stack.isEmpty()){
+        sb.append(stack.pollFirst());
+    }
+    return sb.toString();
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+### 321. 拼接最大数
+
+[321. 拼接最大数](https://leetcode-cn.com/problems/create-maximum-number/) (困难)
+
+- 思路: 从两个数组中选出k个数拼在一起,(从两个数组中选出的是自序列, 保持相对顺序) 使得这个数最大
+  - 从m中选长度为x的子序列, n中选长度为y的子序列 使得 x+y=k
+  - 从两个数组中选出的子序列都是对应序列中最大的
+  - 需要枚举x=0,1,2,...k 对应 y = k-x
+  - 将选出的两个子序列合并类似于合并两个有序列表, 但是保证递减
+
+![image-20210804130458287](Algorithm.assets/image-20210804130458287.png)
+
+```java
+public int[] maxNumber(int[] num1, int[] num2, int k) {
+
+    int m = num1.length, n=num2.length;
+    if(num1==null || num1.length==0) return findMaxSubSequence(num2,k);
+    if(num2==null || num2.length==0) return findMaxSubSequence(num1,k);
+    /**
+        0<=i<=m && i<=k
+        0<=k-i<=n ==> 0<=k-n<=i
+        Math.max(0,k-n) <= i <= Math.min(m, k)
+        */
+    int start = Math.max(0,k-n);
+    int end = Math.min(m,k);
+    int[] res = null;
+    //枚举从num1中选择i个数, num2中选择k-i个数, 合并后留下较大的
+    for(int i=start; i<=end; i++){
+        int[] max1 = findMaxSubSequence(num1,i);
+        int[] max2 = findMaxSubSequence(num2,k-i);
+        int[] merged = mergeTwoSortedArray(max1,max2);
+        if(res==null){
+            res = merged;
+        }else{
+            res = compare(merged,0,res,0)>0?merged:res;
+        }
+    }
+    return res;
+}
+
+//找到数组中长度为 n 的最大子序列
+private int[] findMaxSubSequence(int[] nums, int n){
+    //栈
+    int[] stack = new int[n];
+    //栈顶指针
+    int top = -1;
+    int len = nums.length;
+    //可以被删除的元素个数, 因为要留下k个 最多删除len-k
+    int canBeDeleted = len-n;
+    if(canBeDeleted==0){
+        return nums.clone();
+    }
+    if(canBedeleted==len){
+        return new int[0];
+    }
+    for(int i=0; i<len; i++){
+        int cur = nums[i];
+        while(top>=0 && stack[top]<cur && canBeDeleted>0){
+            top--;
+            canBeDeleted--;
+        }
+        if(top<n-1){
+            stack[++top] = cur;
+        }else{
+            canBeDeleted--;
+        }
+    }
+    return stack;
+}
+
+//合并两个数组从大到小
+private int[] mergeTwoSortedArray(int[] num1, int[] num2){
+    if(num1==null || num1.length==0){
+        return num2;
+    }
+    if(num2==null || num2.length==0){
+        return num1;
+    }
+    int len1 = num1.length;
+    int len2 = num2.length;
+    int mergeLen = len1+len2;
+    int[] mergedArr = new int[mergeLen];
+    int i = 0, j=0, index = 0;
+    while(i<len1 && j<len2){
+        mergedArr[index++] = compare(num1,i,num2,j)>0?num1[i++]:num2[j++];
+    }
+    while(i<len1){
+        mergedArr[index++] = num1[i++];
+    }
+    while(j<len2){
+        mergedArr[index++] = num2[j++];
+    }
+    return mergedArr;
+}
+
+//从num1的i num2的j 开始比较两个数组的大小
+private int compare(int[] num1, int i, int[] num2, int j){
+    int len1 = num1.length;
+    int len2 = num2.length;
+    //比较的长度为元素较少的那个长度
+    int compareLen = Math.min(len1-i, len2-j);
+    for(int k=0; k<compareLen; k++){
+        if(num1[i+k]!=num2[j+k]){
+            return Integer.compare(num1[i+k],num2[j+k]);
+        }
+    }
+    //比较范围内都相等, 返回长度的比较
+    return Integer.compare(len1-i, len2-j);
+}
+```
+
+
+
+### 1081. 不同字符的最小子序列
+
+- 
 
 ### 402. 移掉 K 位数字
 
@@ -954,6 +1210,116 @@ private ListNode reverse(ListNode node, int n){
 
 # Tree
 
+## 99. 恢复二叉搜索树
+
+[99. 恢复二叉搜索树](https://leetcode-cn.com/problems/recover-binary-search-tree/)
+
+- 思路
+  - 对二叉搜索树进行中序遍历, 
+  - 正确的二叉搜索树应该是递增序列
+  - 交换了两个元素造成了 整个数组可能出现一个或两个逆序的地方 a[i]<a[i-1] 
+  - 如果只有一个, 记录这两个结点, 交换即可
+  - 如果有两个, 需要记录第一个逆序的前一个元素和第二逆序位置的后一个元素 交换这个两个元素
+
+![image-20210804152059081](Algorithm.assets/image-20210804152059081.png)
+
+![image-20210804154736513](Algorithm.assets/image-20210804154736513.png)
+
+```java
+//迭代
+public void recoverTree(TreeNode root) {
+    if(root==null) return;
+    Deque<TreeNode> stack = new ArrayDeque<>();
+    TreeNode prev = null, x=null, y=null;
+    while(root!=null || !stack.isEmpty()){
+        while(root!=null){
+            stack.push(root);
+            root = root.left;
+        }
+        root = stack.pop();
+        //当前元素<中序遍历的前一个元素
+        if(prev!=null && prev.val>root.val){
+            //当前逆序对[prev.root]的后一个元素root
+            y = root;
+            
+            if(x==null){
+                //当前逆序对[prev.root]的前一个元素root, 说明这是第一个遇到的逆序对
+                x = prev;
+            }else{
+                //之前已经有一个逆序对了, 需要交换的是当前逆序对的后一个元素root, 和之前逆序对的前一个元素
+                break;
+            }
+        }
+        //记录前一个元素
+        prev = root;
+        root = root.right;
+    }
+    //交换逆序的第一个和第二个
+    swap(x,y);
+
+}
+
+private void swap(TreeNode x, TreeNode y){
+    int tmp = x.val;
+    x.val = y.val;
+    y.val = tmp;
+}
+
+//递归
+public void recoverTree(TreeNode root) {
+    if(root==null) return;
+    List<TreeNode> lists = new ArrayList<>();
+    inOrder(root, lists);
+    //记录可能存在的两个逆序对的前后元素
+    TreeNode prev1=null, next1=null, prev2=null, next2=null;
+    for(int i=1; i<lists.size(); i++){
+        if(lists.get(i).val<lists.get(i-1).val){
+            if(prev1==null){
+                next1 = lists.get(i);
+                prev1 = lists.get(i-1);
+            }else{
+                next2 = lists.get(i);
+                prev2 = lists.get(i-1);
+            }
+        }
+    }
+    //只有一个逆序对
+    if(prev2==null){
+        swap(prev1, next1);
+    }else{
+        //有两个逆序对
+        swap(prev1, next2);
+    }
+}
+
+private void inOrder(TreeNode node, List<TreeNode> lists){
+    if(node==null) return;
+    inOrder(node.left, lists);
+    lists.add(node);
+    inOrder(node.right, lists);
+}
+
+private void swap(TreeNode x, TreeNode y){
+    int tmp = x.val;
+    x.val = y.val;
+    y.val = tmp;
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## 1740. 找到二叉树中的距离
 
 - 思路: 找到两个结点的最深公共祖先,
@@ -1020,6 +1386,16 @@ private boolean match(String s, int i, int wordLen, int wordNum){
 
 }
 ```
+
+
+
+
+
+
+
+
+
+
 
 
 
