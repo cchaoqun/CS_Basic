@@ -692,9 +692,7 @@ Dump文件是进程的内存镜像。可以把程序的执行状态通过调试�
 
 #### synchronized 的作用？
 
-在 Java 中，synchronized 关键字是用来控制线程同步的，就是在多线程的环境下，控制 synchronized 代码段不被多个线程同时执行。
-
-synchronized 可以修饰类、方法、变量。
+关键字 synchronized可以保证在同一个时刻，只有一个线程可以执行某个方法或者某个代码块(主要是对方法或者代码块中存在共享数据的操作)，同时我们还应该注意到synchronized另外一个重要的作用，synchronized可保证一个线程的变化(主要是共享数据的变化)被其他线程所看到（保证可见性，完全可以替代Volatile功能），这点确实也是很重要的。
 
 另外，在 Java 早期版本中，synchronized属于重量级锁，效率低下，因为监视器锁（monitor）是依赖于底层的操作系统的 Mutex Lock 来实现的，Java 的线程是映射到操作系统的原生线程之上的。
 
@@ -702,7 +700,9 @@ synchronized 可以修饰类、方法、变量。
 
 庆幸的是在 Java 6 之后 Java 官方对从 JVM 层面对synchronized 较大优化，所以现在的 synchronized 锁效率也优化得很不错了。JDK1.6对锁的实现引入了大量的优化，如**自旋锁、适应性自旋锁、锁消除、锁粗化、偏向锁、轻量级锁**等技术来减少锁操作的开销。
 
-#### 说说自己是怎么使用 synchronized 关键字，在项目中用到了吗
+
+
+#### 说说自己是怎么使用 synchronized 关键字，在项目中用到了吗(synchronized的三种应用方式)
 
 synchronized关键字最主要的三种使用方式：
 
@@ -756,7 +756,18 @@ uniqueInstance 采用 volatile 关键字修饰也是很有必要的， uniqueIns
 
 #### 说一下 synchronized 底层实现原理？
 
-synchronized是Java中的一个关键字，在使用的过程中并没有看到显示的加锁和解锁过程。因此有必要通过javap命令，查看相应的字节码文件。
+synchronized是Java中的一个关键字，在使用的过程中并没有看到显示的加锁和解锁过程。
+
+Java 虚拟机中的同步(Synchronization)基于进入和退出管程(Monitor)对象实现， 无论是显式同步(有明确的 monitorenter 和 monitorexit 指令,即同步代码块)还是隐式同步都是如此。在 Java 语言中，同步用的最多的地方可能是被 synchronized 修饰的同步方法。同步方法 并不是由 monitorenter 和 monitorexit 指令来实现同步的，而是由方法调用指令读取运行时常量池中方法的 ACC_SYNCHRONIZED 标志来隐式实现的
+
+方法级的同步是隐式，即无需通过字节码指令来控制的，它实现在方法调用和返回操作之中。
+
+- JVM可以从方法常量池中的方法表结构(method_info Structure) 中的 ACC_SYNCHRONIZED 访问标志区分一个方法是否同步方法。
+- 当方法调用时，调用指令将会 检查方法的 ACC_SYNCHRONIZED 访问标志是否被设置，如果设置了，执行线程将先持有monitor（虚拟机规范中用的是管程一词）， 然后再执行方法，
+- 最后再方法完成(无论是正常完成还是非正常完成)时释放monitor。
+- 在方法执行期间，执行线程持有了monitor，其他任何线程都无法再获得同一个monitor。
+- 如果一个同步方法执行期间抛 出了异常，并且在方法内部无法处理此异常，那这个同步方法所持有的monitor将在异常抛到同步方法之外时自动释放
+  
 
 synchronized 同步语句块的情况
 
@@ -772,11 +783,13 @@ public class SynchronizedDemo {
 
 通过JDK 反汇编指令 javap -c -v SynchronizedDemo
 
+- 可以看出在执行同步代码块之前之后都有一个monitor字样，其中前面的是monitorenter，后面的是离开monitorexit，
+
+- 一个线程也执行同步代码块，首先要获取锁，而获取锁的过程就是monitorenter ，在执行完代码块之后，要释放锁，释放锁就是执行monitorexit指令。
+
 ![image-20210728114331602](Java多线程.assets/image-20210728114331602.png)
 
-可以看出在执行同步代码块之前之后都有一个monitor字样，其中前面的是monitorenter，后面的是离开monitorexit，
 
-一个线程也执行同步代码块，首先要获取锁，而获取锁的过程就是monitorenter ，在执行完代码块之后，要释放锁，释放锁就是执行monitorexit指令。
 
 
 #### 为什么会有两个monitorexit呢？

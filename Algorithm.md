@@ -759,6 +759,70 @@ public int largestRectangleArea(int[] heights){
 
 
 
+### 42. 接雨水
+
+[42. 接雨水](https://leetcode-cn.com/problems/trapping-rain-water/)
+
+- 思路
+  - 维护双指针, 左右最大值
+  - 双指针位置更新左到左指针位置的最大值, 右到右指针位置的最大值
+  - 最大值小的那个, 对应边位置可以接的雨水可以确定, 即两边较小的高度-指针指向的高度
+  - 较小的指针向中间移动, 较大的不动
+
+![image-20210805150712752](Algorithm.assets/image-20210805150712752.png)
+
+```java
+//双指针
+public int trap(int[] height){
+    int n = height.length;
+    int l = 0, r = n-1, lmax = 0, rmax = 0;
+    int res = 0;
+    while(l<r){
+        lmax = Math.max(lmax, height[l]);
+        rmax = Math.max(rmax, height[r]);
+        if(lmax<rmax){
+            res += lmax-height[l];
+            l++;
+        }else{
+            res += rmax-height[r];
+            r--;
+        }
+    }
+    return res;
+}
+
+//单调栈 递减的栈
+public int trap(int[] height){
+    int n = height.length;
+    int res = 0;
+    Deque<Integer> stack = new ArrayDeque<>();
+    for(int i=0; i<n; i++){
+        //右边界高度
+        int cur = height[i];
+        //遇到逆序的元素
+        while(!stack.isEmpty() && height[stack.peek()]<cur){
+            //需要计算能接受雨水量的柱形
+			int curTop = stack.pop();
+            //栈空 说明左边界为0 没办法接雨水,
+            if(stack.isEmpty()){
+                break;
+            }
+            //左边界索引
+            int leftBound = stack.peek();
+            //左右边界中间的长度(不包括左右边界)
+            int curWidth = i-leftBound-1;
+            //木桶原理, 可以装的水量是左右边界较小的
+            int volume = Math.min(height[i], height[leftBound])-height[curTop];
+            //长度*高度
+            res += curWidth*volume;
+        }
+        //当前索引入栈
+        stack.push(i);
+    }
+    return res;
+}
+```
+
 
 
 
@@ -945,8 +1009,6 @@ private int compare(int[] num1, int i, int[] num2, int j){
 
 
 ### 1081. 不同字符的最小子序列
-
-- 
 
 ### 402. 移掉 K 位数字
 
@@ -1344,15 +1406,32 @@ private void swap(TreeNode x, TreeNode y){
 }
 ```
 
+## 129. 求根节点到叶节点数字之和
+
+[129. 求根节点到叶节点数字之和](https://leetcode-cn.com/problems/sum-root-to-leaf-numbers/)
 
 
 
+![image-20210805153158445](Algorithm.assets/image-20210805153158445.png)
 
 
 
+```java
+public int sumNumbers(TreeNode root) {
+    return dfs(root,0);
+}
 
-
-
+private int dfs(TreeNode node, int path){
+    if(node==null){
+        return 0;
+    }
+    path = path*10+node.val;
+    if(node.left==null && node.right==null){
+        return path;
+    }
+    return dfs(node.left, path) + dfs(node.right, path);
+}
+```
 
 
 
@@ -1438,6 +1517,337 @@ private boolean match(String s, int i, int wordLen, int wordNum){
 
 
 
+
+
+
+# Binary Search
+
+## 69. x 的平方根
+
+[69. x 的平方根](https://leetcode-cn.com/problems/sqrtx/)
+
+
+
+
+
+![image-20210805154707932](Algorithm.assets/image-20210805154707932.png)
+
+```java
+public int mySqrt(int n){
+    if(n==0 || n==1){
+        return n;
+    }
+    int l = 0, r=n/2;
+    while(l<r){
+        int mid = (l+r+1)>>>1;
+        if(mid>x/mid){
+            r = mid-1;
+        }else{
+            l = mid;
+        }
+    }
+    return l;
+}
+```
+
+
+
+
+
+# Rand转换
+
+1. 题目给你一个等概率函数，你可以把他转换为一个等概率返回0和1的函数rand01();
+2. 因为f()可以构造任何等概率的函数，以题目举例;
+3. 已知等概率返回1-7,我们可以在rand01()循环中等于4重新计算，小于4返回0，大于4返回1。这是等概率的
+4. 构造1-10等概率，可以先构造0-9等概率再加1。估算至少需要4个二进制位，相加即可。
+
+```java
+class Solution extends SolBase {
+    public int rand10() {
+        int res;
+        do {
+            res = (rand01() << 3) + (rand01() << 2) + (rand01() << 1) + rand01();
+        } while (res > 9);
+        return res + 1;
+    }
+
+    public int rand01() {
+        int res;
+        do {
+            res = rand7();
+        } while (res == 4);
+        return res < 4 ? 0 : 1;
+    }
+}
+
+```
+
+
+
+
+
+## 470. 用 Rand7() 实现 Rand10()
+
+[470. 用 Rand7() 实现 Rand10()](https://leetcode-cn.com/problems/implement-rand10-using-rand7/)
+
+```java
+/**
+ * 思路：
+ *  
+ * （1）由大的随机数 生成小的随机数是方便的，如 rand10 -> rand7
+ *      只需要用 rand10 生成等概率的 1 ~ 10 ，然后判断生成的随机数 num ，如果 num <= 7 ，则返回即可
+ *      
+ * （2）如何由小的随机数生成大的随机数呢？
+ *      考虑这样一个事实：
+ *      randX() 生成的随机数范围是 [1...X]
+ *      (randX - 1) * Y + randY() 可以等概率的生成的随机数范围是 [1, X*Y]
+ *     因此， 可以通过 (rand7 - 1) * 7 + rand7() 等概率的生成 [1...49]的随机数
+ *     我们可以选择在 [1...10] 范围内的随机数返回。
+ *  
+ * （3）上面生成 [1...49] 而 我们需要 [1...10]，[11...49]都要被过滤掉，效率有些低
+ *      可以通过减小过滤掉数的范围来提高效率。
+ *      比如我们保留 [1...40]， 剩下 [41...49]
+ *      为什么保留 [1...40] 呢？ 因为对于要生成 [1...10]的随机数，那么 
+ *      可以等概率的转换为 1 + num % 10 , suject to num <= 40
+ *      因为 1 ... 40 可以等概率的映射到 [1...10]
+ *      那么如果生成的数在 41...49 怎么办呢？，这些数因为也是等概率的。
+ *      我们可以重新把 41 ... 49 通过 num - 40 映射到 1 ... 9，可以把 1...9 重新看成一个
+ *      通过 rand9 生成 rand10 的过程。
+ *      (num - 40 - 1) * 7 + rand7() -> [1 ... 63]
+ *      if(num <= 60) return num % 10 + 1;
+ *      
+ *      类似的，[1...63] 可以 划分为 [1....60] and [61...63]
+ *      [1...60] 可以通过 1 + num % 10 等概率映射到 [1...10]
+ *      而 [61...63] 又可以重新重复上述过程，先映射到 [1...3]
+ *      然后看作 rand3 生成 rand10
+ *      
+ *      (num - 60 - 1) * 7 + rand7() -> [1 ... 21]
+ *      if( num <= 20) return num % 10 + 1;
+ *      
+ *      注意：这个映射的范围需要根据 待生成随机数的大小而定的。
+ *      比如我要用 rand7 生成 rand9
+ *      (rand7() - 1) * 7 + rand7() -> [1...49]
+ *      则等概率映射范围调整为 [1...45]， 1 + num % 9
+ *      if(num <= 45) return num % 9 + 1;
+ */
+
+public int rand10() {
+    while (true){
+        // 1~(7-1)*7+7 => 1~49
+        int num = (rand7() - 1) * 7 + rand7();
+        // 如果在40以内，那就直接返回
+        if(num <= 40) return 1 + num % 10;
+        // 说明刚才生成的在41-49之间，利用随机数再操作一遍
+        // 1 ~ 8*7+7 => 1~63
+        num = (num - 40 - 1) * 7 + rand7();
+        if(num <= 60) return 1 + num % 10;
+        // 说明刚才生成的在61-63之间，利用随机数再操作一遍
+        // 1~2*7+7 =>1~21
+        num = (num - 60 - 1) * 7 + rand7();
+        if(num <= 20) return 1 + num % 10;
+
+    }
+}
+
+
+```
+
+
+
+
+
+# 数组
+
+## 数组中缺失, 重复(原地哈希)
+
+### 41. 缺失的第一个正数
+
+[41. 缺失的第一个正数](https://leetcode-cn.com/problems/first-missing-positive/)
+
+- 思路
+  - 不处理<0或者>n的数, 因为n个数的数组, 缺失的最小整数一定在[1,n+1]的范围内
+  - 如果[1,n]都没缺失,就返回n+1
+  - 希望将nums[i] 交换到nums[i]-1的位置 
+    - nums[nums[i]-1]!=nums[i]
+    - 表示nums[i]这个数在nums[i]-1这个位置上,所以达成了目标我们就不需要再交换了
+  - 再遍历一遍数组, 如果发现了nums[i]!=i+1返回i+1
+  - 都满足 返回n+1
+
+![image-20210805161634905](Algorithm.assets/image-20210805161634905.png)
+
+
+
+```java
+public firstMissingPositive(int[] nums){
+    int n = nums.length;
+    for(int i=0; i<n; i++){
+        //
+        while(nums[i]>0 && nums[i]<=n && nums[nums[i]-1]!=nums[i]){
+            swap(nums, nums[i]-1, i);
+        }
+    }
+    for(int i=0; i<n; i++){
+        if(nums[i]!=i+1){
+            return i+1;
+        }
+    }
+    return n+1;
+}
+
+private void swap(int[] nums, int index1, int index2) {
+    int temp = nums[index1];
+    nums[index1] = nums[index2];
+    nums[index2] = temp;
+}
+
+
+```
+
+
+
+### 442. 数组中重复的数据
+
+[442. 数组中重复的数据](https://leetcode-cn.com/problems/find-all-duplicates-in-an-array/)
+
+- 将nums[i]交换到nums[i]-1的位置上
+- 如果发现nums[i]==nums[nums[i]-1] nums[i]是一个重复的数
+
+
+
+
+
+![image-20210805161817958](Algorithm.assets/image-20210805161817958.png)
+
+```java
+public List<Integer> findDuplicates(int[] nums) {
+    List<Integer> list = new ArrayList<>();
+    int n = nums.length;
+    for(int i=0; i<n; i++){
+        while(nums[i]!=-1 && i!=nums[i]-1){
+            if(nums[i]==nums[nums[i]-1]){
+                list.add(nums[i]);
+                //这个元素只会出现两次, 标记为-1 下次遇到另一个直接跳过
+                nums[nums[i]-1]=-1;
+                nums[i] = -1;
+                break;
+            }
+            swap(nums, i, nums[i]-1);
+        }
+    }
+    return list;
+}
+private void swap(int[] nums, int index1, int index2) {
+    int temp = nums[index1];
+    nums[index1] = nums[index2];
+    nums[index2] = temp;
+}
+```
+
+
+
+
+
+
+
+
+
+### 448. 找到所有数组中消失的数字
+
+[448. 找到所有数组中消失的数字](https://leetcode-cn.com/problems/find-all-numbers-disappeared-in-an-array/)
+
+- 遍历数组，将每个数字交换到它理应出现的位置上，下面情况不用换：
+  - 当前数字本就出现在理应的位置上，跳过，不用换。nums[i]==i+1
+  - 当前数字理应出现的位置上，已经存在当前数字，跳过，不用换。nums[i]==nums[nums[i]-1]
+
+
+
+![image-20210805161810866](Algorithm.assets/image-20210805161810866.png)
+
+```java
+public List<Integer> findDisappearedNumbers(int[] nums) {
+    List<Integer> list = new ArrayList<>();
+    int n = nums.length;
+    for(int i=0; i<n; i++){
+        while(nums[i]!=i+1 && nums[i]!=nums[nums[i]-1]){
+            swap(nums,i,nums[i]-1);
+        }
+    }
+    for(int i=0; i<n; i++){
+        if(nums[i]!=i+1){
+            list.add(i+1);
+        }
+    }
+    return list;
+}
+private void swap(int[] nums, int index1, int index2) {
+    int temp = nums[index1];
+    nums[index1] = nums[index2];
+    nums[index2] = temp;
+}
+```
+
+
+
+
+
+
+
+# 实现数据结构
+
+## 232. 用栈实现队列
+
+[232. 用栈实现队列](https://leetcode-cn.com/problems/implement-queue-using-stacks/)
+
+- 思路
+  - 一个popStack用来移除队列头
+  - 一个pushStack用来加入队列尾
+  - pop如果为空, 需要将pushStack全部出栈再入栈到popStack
+
+![image-20210805190951964](Algorithm.assets/image-20210805190951964.png)
+
+```java
+class MyQueue {
+    Deque<Integer> pushStack;
+    Deque<Integer> popStack;
+
+    /** Initialize your data structure here. */
+    public MyQueue() {
+        pushStack = new ArrayDeque<>();
+        popStack = new ArrayDeque<>();
+
+    }
+
+    /** Push element x to the back of queue. */
+    public void push(int x) {
+        pushStack.push(x);
+    }
+
+    /** Removes the element from in front of queue and returns that element. */
+    public int pop() {
+        move();
+        return popStack.isEmpty()?-1:popStack.pop();
+    }
+
+    /** Get the front element. */
+    public int peek() {
+        move();
+        return popStack.isEmpty()?-1:popStack.peek();
+    }
+
+    private void move(){
+        if(popStack.isEmpty()){
+            while(!pushStack.isEmpty()){
+                popStack.push(pushStack.pop());
+            }
+        }
+    }
+
+    /** Returns whether the queue is empty. */
+    public boolean empty() {
+        return pushStack.isEmpty() && popStack.isEmpty();
+    }
+}
+```
 
 
 
@@ -1566,3 +1976,8 @@ public double findMedianSortedArrays(int[] nums1, int[] nums2) {
 正则表达式去匹配IP地址
 
 https://www.cnblogs.com/xiaoxiao075/p/10351122.html
+
+
+
+
+

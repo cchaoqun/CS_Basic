@@ -343,7 +343,7 @@ Fatal is equivalent to Print() followed by a call to os.Exit(1).
 
 
 
-# 什么是RPC
+
 
 
 
@@ -1208,21 +1208,337 @@ replica group之间的分片是通过RPC进行,
 ### shard KVServer
 
 - 每个server 都是replica group 的一部分
-
 - 每个replica group 处理一些shards 的 Put/Append/Get
 - 多个replica group合作处理所有的shards
 - master 分配shards到replica groups
 - 新的configuration创建, replica groups 之间互相传递shards 在这个过程中, client不会看见不一致的信息
-
 - 需要提供线性一致性, 每个完成的 Cleark.Get() Clerk.Put() Clerk.Append() 需要对所有的replicas 产生相同顺序的影响
 - Clerk.Get()可以看到最新的改变
   - Get Put 同时到达, 并且这时正在发生configuration change 重新分片
 - 在保证超过一半的serves都可以工作的情况下, shards可以继续更新
 - 一个shard KVServer只属于一个replica group 并且每个replica group中的server不会改变
 
+
+
+#### ShardKV 
+
+![image-20210805211202882](MIT6.824.assets/image-20210805211202882.png)
+
+
+
+####  Get(args *GetRequest, reply *GetResponse)
+
+Get returns: APPLY_TIMEOUT/FAILED_REQUEST/SUCCESS/DUPLICATE_REQUEST
+
+1. 获取Client请求数据, 封装成结构体GeneralInput in
+   1. OpType: GET
+   2. Key
+   3. ClientInfo
+2. 尝试复制这个请求
+   1. out := kv.tryApplyAndGetResult(in)
+3. 将得到的数据放在reply里面
+
+
+
+
+
+#### PutAppend(args *PutAppendRequest, reply *PutAppendResponse)
+
+// PutAppend returns: APPLY_TIMEOUT/FAILED_REQUEST/SUCCESS/DUPLICATE_REQUEST
+
+1. 获取Client请求数据, 封装成结构体GeneralInput in
+   1. OpType: GET
+   2. Key value
+   3. ClientInfo
+2. 尝试复制这个请求
+   1. out := kv.tryApplyAndGetResult(in)
+3. 将得到的数据放在reply里面
+
+
+
+####  ReceiveShard(args *ReceiveShardRequest, reply *ReceiveShardResponse) 
+
+1. 获取分片命令参数
+   1. OpType LOAD_SHARD
+   2. Input:分片的数据
+2. 尝试接收这些分片 out := kv.tryApplyAndGetResult(in)
+
+
+
+#### StartServer
+
+(servers []*labrpc.ClientEnd, me int, persister *raft.Persister, maxraftstate int, gid int, ctrlers []*labrpc.ClientEnd, make_end func(string) *labrpc.ClientEnd) *ShardKV
+
+1. 初始化KVServer的属性
+2. 从最新的快照获得数据库数据
+   1. data := kv.rf.LastestSnapshot().Data	
+   2. kv.deserializeState(data)
+3. 等待客户端请求
+   1. go kv.executeLoop()
+4. 每隔100ms轮询master查看是否有configuration的更新
+   1. go kv.configListenLoop()
+5. 初始化每个分片的接收操作
+   1. for i := 0; i < shardctrler.NShards; i++ {
+      		go kv.shardOperationLoop(i)
+      	}
+
+
+
+#### tryApplyAndGetResult(req GeneralInput) (resp GeneralOutput) 
+
+// tryApplyAndGetResult 向raft层发起一个共识请求，并返回共识结果
+// 有最大阻塞时间，保证不会永久阻塞
+
+1. 向raft层发起共识请求, 要求复制请求参数对应的logEntry到raft peer的本地日志集合
+   1. idx, term, ok := kv.rf.Start(req), 如果复制成功, 对应在日志集合的index, 成功时的term, 处理的raft是否是leader
+   2. 不是leader返回 WRONG_LEADER
+2. 创建一个用于接收raft回复的GeneralOutput chan 
+   1. ch := make(chan GeneralOutput, 1)
+3. 如果这个日志(通过index term确定唯一性)对应的Map不存在就创建一个
+   1. mm = make(map[int]chan GeneralOutput)
+   2. sc.sigChans[idx] = mm
+   3. mm[term] = ch
+   4. sigChans[index] = map[term]chan GeneralOutPut 通过 index-->term-->确定一个logEntry唯一的chan
+4. 设置本次apply的计时器
+5. 等待消息
+   1. GeneralOutPut的消息, 删除这个sigChans[index]  因为每个log都对应唯一的chan 不可以复用 返回结果给客户端
+   2. apply计时器 说明raft超时 删除这个raftResponse chan 返回
+
+#### executeLoop() 
+
+1. 循环等待客户端请求(等待kv.applyCh的消息)
+   1. 收到这个chan的消息说明当前的请求对应的log被提交了
+2. 从这个applyCh得到的消息中得到这个被提交的 
+   1. 请求在日志集合中的 index 
+   2. 对应提交时的term, 
+   3. 以及请求具体是什么r := msg.Command.(GeneralInput)
+3. 根据这个提交请求的类型 r.OpType
+   1. GET, PUT, APPEND:
+      1. 调用kv.tryExecuteCommand(idx, term, &r), 传入客户端请求参数, 处理请求
+      2. 成功执行, 检查是否需要保存快照, 需要就保存 kv.trySaveSnapshot(idx, term)
+   2. UPDATE_CONFIG
+      1. 需要从master获取最新的configuration, kv.tryLoadConfig(&r);
+      2.  并且必须保存快照 kv.mustSaveSnapshot(idx, term)
+   3. LOAD_SHARD
+      1. 装载分配给这个ShardServer的 shards,  kv.tryLoadShard(idx, term, &r);
+      2. 并保存快照 kv.mustSaveSnapshot(idx, term)
+   4.  CLEAN_SHARD
+      1. 清除之前这个ShardServer负责的shards, kv.tryCleanShard(&r)
+      2. 保存快照  kv.mustSaveSnapshot(idx, term)
+4. 根据客户端的请求, 以及分片的迁移操作, 执行对应的命令, 这里只是一个分发器, 具体实现都在不同请求封装的方法里
+
+
+
+#### tryExecuteCommand(idx, term int, r *GeneralInput)
+
+1. 获得负责请求的key所在的分片s的集群id,  s := key2shard(r.Key)
+2. 如果这个集群当前不负责分片s, 或者 正在转移分片 
+   1. kv.shardState[s] == NOTINCHARGE || kv.shardState[s] == TRANSFERRING 
+   2. 通过这个请求的 idx term得到这个请求唯一的sigChan ,发送 WRONG_GROUP消息, 删除这个请求对应的sigChan
+3. 分片正确, 但是正在等待属于这个集群的分片从其他的集群转移过来
+   1. kv.shardState[s] == RECEIVING
+   2. 还是通过这个请求的sigChan 发送FAILED_REQUEST 因为正在等待分片无法处理请求
+4. 检查重复请求
+   1. r.OpType != GET && r.Seq <= kv.clientSeq\[s][r.Uid] 
+   2. 是修改数据库的请求, 并且这个client的Seq<这个client当前最大的Seq, 说明这是一个已经提交过的请求, 
+   3. 返回 DUPLICATE_REQUEST 不处理, 并删除这个请求对应的sigChan
+5. 是合法请求, 更新这个client的最新请求Seq kv.clientSeq\[s][r.Uid] = r.Seq
+   1. 根据GET/PUT/APPEND请求执行对应对数据库的操作  kv.shardedData\[s][r.Key]
+   2. kv.shardData\[分片index][请求key]
+   3. 通过sigChan 返回SUCCESS消息,  删除sigChan
+
+
+
+#### tryLoadConfig(r *GeneralInput) (success bool) 
+
+尝试装载最新的配置
+
+1. 获取请求shardServer中的configuration 
+   1. config := r.Input.(shardctrler.Config)
+2. 检查shardServer中的configuration是否是最新的, 如果不是就需要更新
+   1. shardServer中的config不落后于请求中的configuration  
+      1. config.Idx != kv.conf.Idx+1 无需更新
+   2. 遍历shardServer中某个分片对应的集群状态
+      1. 如果存在某个集群处于接收和转移的状态  RECEIVING /TRANSFERRING  无需更新
+      2. 因为正处于一次reconfiguration的状态
+3. 当前shardServer不是最新的configuration并且不处于reconfiguration的状态, 
+4. 现在的kv.config 成为了旧的config, 复制一份变成oldConfig 
+   1. shardctrler.CopyConfig(&oldConfig, &kv.conf)
+5. 检查初始化, 如果oldConfig.Idx==0 说明需要初始化
+   1. 遍历config.shards 分片数组, 如果对应的集群Id是这个shardServer, 就把kv.shardState状态变成INCHARGE, 因为分配给了自己
+      1. kv.shardState[replica group Id] = INCHARGE
+   2. 遍历完成, 把这次请求的携带的最新的config复制到shardServer 返回
+      1. shardctrler.CopyConfig(&kv.conf, &config)
+6. 不需要初始化, 遍历每个分片对应集群的状态 for s, ngid := range config.Shards 
+   1. s=分片在分片数组的index, ngid=负责这个分片的集群idx
+   2. 当前shardServer对于分片s的状态是
+      1. NOTINCHARGE, 但是负责这个集群的idx等于当前shardServer,  ngid == kv.gid 
+         1. 说明这个分片分配给了这个shardServer但是还没有从其他集群传输过来
+         2. 标记 v.shardState[s] = RECEIVING
+      2. INCHARGE 但是负责这个集群的idx不等于当前shardServer,  ngid != kv.gid
+         1. 说明这个分片之前属于这个集群, 但是reconfiguration以后分配到了其他集群
+         2. 标记 kv.shardState[s] = TRANSFERRING
+   3. 把最新的config复制到当前shardServer
+
+
+
+#### tryLoadShard(idx, term int, r *GeneralInput) (success bool) 
+
+尝试加载一个分片
+
+1. 获取需要加载的分片数据
+   1. data := r.Input.(SingleShardData) 包括请求集群的GID, config id, shard id 分片idnex
+   2. s := data.Shard 在分片数组中的index
+2. 检查当前shardServer对于分片s是否处于RECEVING状态并且配置没有过期
+   1. data.ConfigIdx >= kv.conf.Idx 请求方的config id>=当前shardServer的id, 
+      1. 返回Failed Request, 新配置不能请求旧的配置, 旧的配置以及过期了
+   2. data.ConfigIdx < kv.conf.Idx-1 || kv.shardState[s] == INCHARGE
+      1. 请求方config.id落后当前shardServer超过两个, 或者这个想要加载的分片已经由当前分片负责
+      2. 这是一个重复的请求, 返回DUPLICATE_REQUEST
+   3. kv.shardState[s] == NOTINCHARGE || kv.shardState[s] == TRANSFERRING
+      1. 如果希望当前shardServer加载这个分片, 应该在请求前将当前shardServer.shard[s] 设置为RECEIVING
+      2. 不然说明错误 返回
+3. 可以加载
+   1. 为分片s在kv.shardData[s] 创建分片对应的map\[key][value]
+      1. 遍历data.State(数据库) 更新分片对应map的kv kv.shardedData\[s][k] = v
+   2. 为分片s对应的clientSeq[s]创建每个clients的Seq 请求序列号
+      1. 遍历data.clientSeq 更新每个client的请求序列号 kv.clientSeq[s][k] = v
+   3. 将当前shardServer负责这个分片s在shardState[s] = INCHARGE
+4. 返回SUCCESS
+
+
+
+####  tryCleanShard(r *GeneralInput) (success bool) 
+
+1. 获取需要清除的分片s
+2. 需要清除说明这个分片正在被转移到其他服务器, 并且请求的configId=kv.config.id-1
+   1. kv.shardState[s] == TRANSFERRING && data.ConfigIdx == kv.conf.Idx-1 
+   2. 将对应分片状态标记为 NOTINCAHRGE
+   3. 新建client Seq map
+   4. 新建数据库map shardedData
+   5. 因为旧的数据不再使用
+
+
+
+
+
+
+
+
+
+
+
+#### configListenLoop()
+
+configListenLoop 定期拉取最新的Config并应用
+
+1. 循环拉取config, 每轮先等待100ms
+2. 如果当前shardServer对应的raft不是leader 返回
+3. 获取当前shardServer的config id 配置编号
+4. 创建传输配置的chan  ch := make(chan shardctrler.Config)
+5. 通过shardServer配置集群的客户端向shardmaster获取比当前配置编号+1的配置
+   1. go func(configNum int) { ch <- kv.scc.Query(configNum) }(c + 1)
+   2. 通过ch 接收得到的新配置 config
+6. 检查收到的新配置 config.Idx = kv.conf.Idx+1才可以
+   1. 向raft层发起共识请求, 同步这个更新configuration的请求
+   2. kv.rf.Start(GeneralInput{
+      				OpType: UPDATE_CONFIG,
+      				Input:  config,
+      })
+
+
+
+#### shardOperationLoop(s int) 
+
+执行shard迁移的操作, 只有处于TRANSFERRING 状态的shards需要被主动移动
+
+1. shardServer 对应的raft不是leader直接返回
+
+2. kv.shardState[s] == TRANSFERRING 
+
+   1. 转移数据时,需要将map都复制一份, 否则可能会出现死锁,因为直接传递两个地方共用一份数据
+   2. 创建新的 state clients srvs
+      1. state := make(map[string]string) 数据库
+      2. clients := make(map[int64]int64) 每个client对应的最新Seq
+      3. srvs := make([]string, len(kv.conf.Groups[gid])) 集群对应的shardServer名字
+   3. 获取需要转移的分片目的集群编号
+      1. gid := kv.conf.Shards[s]
+   4. 遍历当前shardServer的 state clients servers复制到拷贝上
+   5. 封装这个转移分片的数据, 当前shardServer的数据到req
+   6. 遍历每个server
+      1. 通过RPC请求转移分片
+      2. 转移成功, 清除当前shardSever对应的 分片
+      3. 进入下一个循环等待分片转移请求
+
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### shard KVClient
 
 - 需要处理重复的client RPC请求
+
+#### Get(key string)
+
+1. 封装请求参数==>req
+   1. key
+   2. ClientInfo: Uid Seq
+2. 获取key对应的shards在当前configuration的哪个shards里面
+   1. s := key2shard(key) s对应config.shards[]数组的索引
+3. 获取负责处理这个分片请求的 replica group 的 GIDs 
+   1. gid := c.conf.Shards[s]
+4. 获取这个replica group中server name的数组
+   1. servers, ok := c.conf.Groups[gid]
+5. 循环请求这个数组里的server
+   1. 通过RPC请求对应的server, 获得SUCCESS请求就返回得到的结果
+   2. 如果请求的不是负责这个shards的replica group, 需要更新config, 
+   3. 说明在请求的过程中, 发生了shards的移动, 需要获取最新的configuration 得到对应的replica group 重新请求
+      1. config := c.scc.Query(-1)
+
+#### PutAppend(key string, value string, op string)
+
+1. 封装请求参数==>req
+   1. key value
+   2. ClientInfo Uid Seq
+   3. 具体的请求方法 op 因为这个put append共享的
+2. 获取key对应的shards在当前configuration的哪个shards里面
+   1. s := key2shard(key) s对应config.shards[]数组的索引
+3. 获取负责处理这个分片请求的 replica group 的 GIDs 
+   1. gid := c.conf.Shards[s]
+4. 获取这个replica group中server name的数组
+   1. servers, ok := c.conf.Groups[gid]
+5. 循环请求这个数组里的server
+   1. 通过RPC请求对应的server, 获得SUCCESS请求就返回
+   2. 如果此次请求是重复的请求直接返回 不再继续请求, DUPLICATE_REQUEST 因为请求已经在之前的某个请求过程执行但是没收到正确的回复
+   3. 如果请求的不是负责这个shards的replica group,WRONG_GROUP 需要更新config, 
+   4. 说明在请求的过程中, 发生了shards的移动, 需要获取最新的configuration 得到对应的replica group 重新请求
+      1. config := c.scc.Query(-1)
+
+
+
+
+
+
+
+
 
 
 
@@ -1931,7 +2247,7 @@ Lease Read 可以认为是 Read Index 的时间戳版本，额外依赖时间戳
 
 
 
-
+# 什么是RPC
 
 
 
