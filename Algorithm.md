@@ -1453,6 +1453,673 @@ private int dfs(TreeNode node, int path){
 
 
 
+# 滑动窗口
+
+```java
+		# Step 1: 定义需要维护的变量们 (对于滑动窗口类题目，这些变量通常是最小长度，最大长度，或者哈希表)
+        x, y = ..., ...
+
+        # Step 2: 定义窗口的首尾端 (start, end)， 然后滑动窗口
+        start = 0
+        for end in range(len(s)):
+            # Step 3: 更新需要维护的变量, 有的变量需要一个if语句来维护 (比如最大最小长度)
+            x = new_x
+            if condition:
+                y = new_y
+
+            '''
+            ------------- 下面是两种情况，读者请根据题意二选1 -------------
+            '''
+            # Step 4 - 情况1
+            # 如果题目的窗口长度固定：用一个if语句判断一下当前窗口长度是否超过限定长度 
+            # 如果超过了，窗口左指针前移一个单位保证窗口长度固定, 在那之前, 先更新Step 1定义的(部分或所有)维护变量 
+            if 窗口长度大于限定值:
+                # 更新 (部分或所有) 维护变量 
+                # 窗口左指针前移一个单位保证窗口长度固定
+
+            # Step 4 - 情况2
+            # 如果题目的窗口长度可变: 这个时候一般涉及到窗口是否合法的问题
+            # 如果当前窗口不合法时, 用一个while去不断移动窗口左指针, 从而剔除非法元素直到窗口再次合法
+            # 在左指针移动之前更新Step 1定义的(部分或所有)维护变量 
+            while 不合法:
+                # 更新 (部分或所有) 维护变量 
+                # 不断移动窗口左指针直到窗口再次合法
+
+        # Step 5: 返回答案
+
+```
+
+
+
+## 76. 最小覆盖子串
+
+[76. 最小覆盖子串](https://leetcode-cn.com/problems/minimum-window-substring/)
+
+- 思路
+  - 滑动窗口, 检查s字符串中最小的窗口可以覆盖t中所有的字符
+  - map记录t中所有字符出现的次数
+  - map记录s中当前窗口所有的字符出现的次数
+  - 当窗口内的子串不满足覆盖字符串t的时候, 
+    - 右指针右移, 如果新的字符出现在t中, 更新窗口的map
+  - 当窗口内的子串满足覆盖t, 左指针不断右移, 如果删除的是t中的字符需要更新窗口map
+  - 每一个覆盖的窗口都需要与当前最小的覆盖窗口比较, 如果更小需要跟新
+
+![image-20210806145327991](Algorithm.assets/image-20210806145327991.png)
+
+
+
+```java
+Map<Character, Integer> tMap;
+Map<Character, Integer> sMap;
+public String minWindow(String s, String t) {
+    tMap = new HashMap<>();
+    sMap = new HashMap<>();
+    for(char c : t.toCharArray()){
+        tMap.put(c, tMap.getOrDefault(c,0)+1);
+    }
+    int len = s.length();
+    int l = 0, r = -1;
+    int resl = -1, resr = -1, reslen = Integer.MAX_VALUE;
+    while(r<len){
+        //右指针右移
+        r++;
+        //更新窗口map
+        if(r<len && tMap.containsKey(s.charAt(r))){
+            sMap.put(s.charAt(r), sMap.getOrDefault(s.charAt(r), 0)+1);
+        }
+        //左移左指针直到不能不该
+        while(valid() && l<=r){
+            //更新的结果窗口
+            if(r-l+1<reslen){
+                resl = l;
+                resr = r;
+                reslen = r-l+1;
+            }
+            //当前从窗口中删除的是s.charAt(l)
+            if(tMap.containsKey(s.charAt(l))){
+                sMap.put(s.charAt(l), sMap.get(s.charAt(l))-1);
+            }
+            //左指针右移
+            l++;
+        }
+    }
+    return resl==-1?"":s.substring(resl, resr+1);
+}
+
+private boolean valid(){
+    //遍历tMap
+    Iterator ite = tMap.entrySet().iterator();
+    while(ite.hasNext()){
+        Map.Entry entry = (Map.Entry) ite.next();
+        Character key = (Character) entry.getKey();
+        Integer val = (Integer) entry.getValue();
+        //sMap.对应的key的次数如果小于tMap肯定不行
+        if(!sMap.containsKey(key) || sMap.get(key)<val){
+            return false;
+        }
+    }
+    return true;
+}
+
+```
+
+
+
+
+
+
+
+## 3.无重复字符的最长子串
+
+[3. 无重复字符的最长子串](https://leetcode-cn.com/problems/longest-substring-without-repeating-characters/)
+
+- 思路
+  - 维护窗口的map记录每个字符出现的次数
+  - map.size()代表无重复子串的长度
+  - 当前右指针新增的字符出现过, 就需要左指针右移, 直到删除了当前的字符
+  - 更新最长子串的长度
+
+![image-20210806155457799](Algorithm.assets/image-20210806155457799.png)
+
+```java
+public int lengthOfLongestSubstring(String s){
+    if(s==null || s.length()==0){
+        return 0;
+    }
+    //当前窗口中的字符
+    Set<Character> set = new HashSet<>();
+    int l = 0, r = -1, maxlen = 0, len = s.length();
+    char[] arr = s.toCharArray();
+    while(r<len-1){
+        //需要在窗口加入arr[r]
+        r++;
+        //加入前判断是否出现过这个字符 出现就一直从左指针的位置一直删除, 直到删除之前出现的这个字符
+        while(set.contains(arr[r])){
+            set.remove(arr[l]);
+            l++;
+        }
+        //当前右指针的字符加入
+        set.add(arr[r]);
+        //更新无重复字符窗口最大长度
+        maxlen = Math.max(maxlen, r-l+1);
+    }
+    return maxlen;
+}
+
+```
+
+
+
+## 159. 至多包含两个不同字符的最长子串
+
+[159. 至多包含两个不同字符的最长子串](https://leetcode-cn.com/problems/longest-substring-with-at-most-two-distinct-characters/)
+
+- 思路
+  - 滑动窗口
+  - 维护map表示窗口里的字符出现次数
+  - 维护窗口里不同字符的数量 map.size()
+  - 右指针右移
+  - 当窗口不符合的时候, 左指针右移, 并更新map, 直到map.size()<=2
+  - 每次符合的条件窗口需要更新对应的窗口长度, 如果更大就更新
+
+![image-20210806151723352](Algorithm.assets/image-20210806151723352.png)
+
+
+
+```java
+public int lengthOfLongestSubstringTwoDistinct(String s) {
+    Map<Character, Integer> map = new HashMap<>();
+    int l = 0, r = -1;
+    int maxlen = 0, len = s.length();
+    while(r<len-1){
+        r++;
+        //更新窗口字符数量
+        map.put(s.charAt(r), map.getOrDefault(s.charAt(r),0)+1);
+        //不同元素超过2 右移左指针
+        while(map.size()>2 ){
+            map.put(s.charAt(l), map.get(s.charAt(l))-1);
+            //数量为0 删除对应的key
+            if(map.get(s.charAt(l))==0){
+                map.remove(s.charAt(l));
+            }
+            //左指针右移
+            l++;
+        }
+        //更新最大长度
+        maxlen = Math.max(maxlen, r-l+1);
+    }   
+    return maxlen;
+}
+```
+
+
+
+## 340. 至多包含 K 个不同字符的最长子串
+
+[340. 至多包含 K 个不同字符的最长子串](https://leetcode-cn.com/problems/longest-substring-with-at-most-k-distinct-characters/)
+
+- 思路
+  - 滑动窗口
+  - 维护map表示窗口里的字符出现次数
+  - 维护窗口里不同字符的数量 map.size()
+  - 右指针右移
+  - 当窗口不符合的时候, 左指针右移, 并更新map, 直到map.size()<=k
+  - 每次符合的条件窗口需要更新对应的窗口长度, 如果更大就更新
+
+![image-20210806153918772](Algorithm.assets/image-20210806153918772.png)
+
+
+
+```java
+public int lengthOfLongestSubstringKDistinct(String s, int k) {
+    Map<Character, Integer> map = new HashMap<>();
+    int l = 0, r = -1;
+    int maxlen = 0, len = s.length();
+    while(r<len-1){
+        r++;
+        map.put(s.charAt(r), map.getOrDefault(s.charAt(r),0)+1);
+        while(map.size()>k){
+            map.put(s.charAt(l), map.get(s.charAt(l))-1);
+            if(map.get(s.charAt(l))==0){
+                map.remove(s.charAt(l));
+            }
+            l++;
+        }
+        maxlen = Math.max(maxlen, r-l+1);
+    }
+    return maxlen;
+}
+```
+
+
+
+
+
+
+
+
+
+## 643. 子数组最大平均数 I
+
+
+
+
+
+
+
+
+
+
+
+
+
+## 209. 长度最小的子数组
+
+[209. 长度最小的子数组](https://leetcode-cn.com/problems/minimum-size-subarray-sum/)
+
+- 思路
+  - 滑动窗口
+  - 维护窗口内元素的和
+  - 窗口总和<target 右指针一直右移
+  - 窗口总和>=target 左指针右移直到窗口总和<target 
+  - 更新符合条件窗口的最小长度
+
+![image-20210806160822019](Algorithm.assets/image-20210806160822019.png)
+
+```java
+public int minSubArrayLen(int target, int[] nums) {
+    if(nums==null || nums.length==0){
+        return 0;
+    }
+    int l = 0, r = -1, minlen = Integer.MAX_VALUE, windowSum = 0;
+    int len = nums.length;
+    while(r<len-1){
+        //右指针右移
+        r++;
+        //新加入nums[r] 更新窗口sum
+        windowSum += nums[r];
+        //只要窗口sum>=target 左指针右移
+        while(windowSum>=target){
+            //当前是符合条件的窗口, 更新最小值
+            minlen = Math.min(minlen, r-l+1);
+            //减去移出窗口的元素
+            windowSum -= nums[l];
+            //左指针右移
+            l++;
+        }
+
+    }
+    return minlen==Integer.MAX_VALUE?0:minlen;
+}
+```
+
+
+
+
+
+## 239. 滑动窗口最大值
+
+[239. 滑动窗口最大值](https://leetcode-cn.com/problems/sliding-window-maximum/)
+
+- 思路
+  - 维护窗口内元素的单调递减队列
+  - 先形成k长度的窗口, 同时维护单点递减元素队列
+  - 形成后, 左右指针同时移动一个位置, 右边加入一个, 左边删除一个
+  - 左边删除的元素如果是队列头的值, 队列头元素出队
+  - 右边加入的元素 和队列尾的元素比较,如果>队列尾的元素, 队列尾一直出队, 直到队列空或者队列尾>当前右边加入的元素
+
+![image-20210806161711761](Algorithm.assets/image-20210806161711761.png)
+
+```java
+public int[] maxSlidingWindow(int[] nums, int k) {
+    if(nums==null || nums.length==0){
+        return new int[0];
+    }
+    /**
+        第一个窗口右端点下标 k-1
+        最后一个窗口右端点下标 len-1
+        窗口个数 len-1-(k-1)+1 = len-k+1
+        最后一个窗口的左端下标x len-1-x+1 = k ==> x = len-k
+        */
+    int len = nums.length;
+    int l = 0, r = -1, index = 0;
+    int[] winMax = new int[len-k+1];
+    //保存的是元素的下标
+    Deque<Integer> dq = new ArrayDeque<>();
+    //形成窗口
+    while(r<k-1){
+        r++;
+        while(!dq.isEmpty() && nums[dq.peekLast()]<nums[r]){
+            dq.pollLast();
+        }
+        dq.offerLast(r);
+    }
+    winMax[index++] = nums[dq.peekFirst()];
+    while(l<len-k){
+        //删除左边
+        if(nums[l]==nums[dq.peekFirst()]){
+            dq.pollFirst();
+        }
+        l++;
+        //添加右边
+        r++;
+        //删除队列尾<当前元素
+        while(!dq.isEmpty() && nums[dq.peekLast()]<nums[r]){
+            dq.pollLast();
+        }
+        dq.offerLast(r);
+        //获取当前最大值
+        winMax[index++] = nums[dq.peekFirst()];
+    }
+    return winMax;
+
+
+}
+```
+
+
+
+## 424. 替换后的最长重复字符
+
+[424. 替换后的最长重复字符](https://leetcode-cn.com/problems/longest-repeating-character-replacement/)
+
+- 思路
+  - 维护滑动窗口内出现次数最多字符的数量 maxn
+  - 如果 maxn + k < window 说明当前滑动窗口能形成的最长子串长度<窗口长度, 需要整体移动窗口 l++ r++
+  - 如果 maxn+k>=window 说明当前形参的最长子串长度还有可能增加 r++
+
+
+
+
+
+![image-20210806164703274](Algorithm.assets/image-20210806164703274.png)
+
+```java
+public int characterReplacement(String s, int k) {
+    if(s==null || s.length()==0 || s.length()<k){
+        return s.length();
+    }
+    int l = 0, r = -1, len = s.length(), maxn = 0;
+    int[] cnt = new int[26];
+    while(r<len-1){
+        r++;
+        cnt[s.charAt(r)-'A']++;
+        //当前窗口中出现次数最多的字符出现的次数
+        maxn = Math.max(maxn, cnt[s.charAt(r)-'A']);
+        //最长子串长度已经<窗口长度, 需要左指针左移
+        if(maxn+k<r-l+1){
+            //左指针左移
+            //如果这里移除的是出现最多的那个字符, 那么maxn不会更新, 直到 加入了这个字符, 或者其他的字符数量超过了maxn
+           
+            cnt[s.charAt(l)-'A']--;
+            l++;
+        }
+    }
+    //最后的长度不能超过字符串长度
+    return Math.min(maxn+k, len);
+}
+```
+
+
+
+
+
+
+
+## 438. 找到字符串中所有字母异位词
+
+[438. 找到字符串中所有字母异位词](https://leetcode-cn.com/problems/find-all-anagrams-in-a-string/)
+
+- 思路
+  - 枚举每个长度为p.length()的窗口, 比较窗口的字符串数量是否根p中一样, 相同就加入窗口左端点
+  - 数组代替map更快
+
+![image-20210806173116496](Algorithm.assets/image-20210806173116496.png)
+
+```java
+int[] cnt1 = new int[26];
+int[] cnt2 = new int[26];
+List<Integer> list;
+public List<Integer> findAnagrams(String s, String p) {
+    list = new ArrayList<>();
+    if(s.length()<p.length()){
+        return list;
+    }
+    for(char c : p.toCharArray()){
+        cnt2[c-'a']++;
+    }
+    /**
+        int slen = s.length(), plen = p.length();
+        slen-1-l+1 = plen ==> l = slen-plen;
+        r = plen-1
+        */
+    int slen = s.length(), plen = p.length();
+    int l = 0, r = -1;
+    //形成窗口
+    while(r<plen-1){
+        r++;
+        cnt1[s.charAt(r)-'a']++;
+    }
+    //每次左右指针都向右移动一个位置 
+    while(r<slen-1){
+        //先检查当前窗口是否符合
+        check(l);
+        //移动窗口
+        cnt1[s.charAt(l)-'a']--;
+        l++;
+        r++;
+        cnt1[s.charAt(r)-'a']++;
+    }
+    //最后一个窗口
+    check(l);
+    return list;
+}
+//检查两个数组是否相等
+private void check(int l){
+    for(int i=0; i<26; i++){
+        if(cnt1[i]!=cnt2[i]){
+            return;
+        }
+    }
+    list.add(l);
+}
+```
+
+
+
+
+
+## [ ]480. 滑动窗口中位数
+
+
+
+[480. 滑动窗口中位数](https://leetcode-cn.com/problems/sliding-window-median/)
+
+- 思路
+  - 滑动窗口, 维护两个堆 最大堆存储前 n-n/2  最小堆存储后n/2个数
+  - 奇数情况 最大堆堆顶就是中位数
+  - 偶数情况, 最大堆堆顶和最小堆堆顶的平均数
+
+![image-20210806174905692](Algorithm.assets/image-20210806174905692.png)
+
+
+
+
+
+
+
+## 487. 最大连续1的个数 II
+
+[487. 最大连续1的个数 II](https://leetcode-cn.com/problems/max-consecutive-ones-ii/)
+
+- 思路
+  - 
+
+![image-20210806181145192](Algorithm.assets/image-20210806181145192.png)
+
+```java
+public int findMaxConsecutiveOnes(int[] nums) {
+    if(nums==null || nums.length==0){
+        return 0;
+    }
+    //                                   之前0的下标
+    int l = 0, r = 0, len = nums.length, zero = -1, maxlen = 0;
+    while(r<len){
+        //遇到0, 左指针变成之前0的下标+1
+        //0的下标变成当前r
+        if(nums[r]==0){
+            l = zero+1;
+            zero = r;
+        }
+        //当前窗口[l r] 长度为r-l+1
+        maxlen = Math.max(r-l+1,maxlen);
+        r++;
+    }
+    return maxlen;
+}
+```
+
+
+
+## 1004. 最大连续1的个数 III
+
+[1004. 最大连续1的个数 III](https://leetcode-cn.com/problems/max-consecutive-ones-iii/)
+
+- 思路
+  - 维护长度为k的队列, 保存当前窗口中最多k个0的下标
+  - 当k=0 每次遇到0 左端点变成当前位置+1
+  - k!=0 遇到0
+    - 队列长度<k 当前右端点入队
+    - 队列长度=k 需要删除最左边的0的下标,即队列头, 左端点变成删除的最左边的0的下标+1,当前右端点入队
+    - 队列长度<k 当前右端点入队
+  - 遇到1不需要更新队列, 
+  - 更新最大长度, 当前的窗口大小为r-l+1
+
+
+
+![image-20210806185909378](Algorithm.assets/image-20210806185909378.png)
+
+
+
+```java
+public int longestOnes(int[] nums, int k) {
+    if(nums==null || nums.length==0){
+        return 0;
+    }
+    Deque<Integer> queue = new ArrayDeque<>();
+    int l = 0, r = 0, len = nums.length,  maxlen = 0;
+    int lastZero = 0;
+    while(r<len){
+        //遇到0, 左指针变成之前0的下标+1
+        //0的下标变成当前r
+        if(nums[r]==0){
+            //一个0都不能删除, 所以当前窗口大小为0
+            if(k==0){
+                l = r+1;
+                lastZero = r;
+            }
+            else if(queue.size()==k){//需要删除最左边的0
+                //最前面的0出队
+                int firstZero = queue.pollFirst();
+                //左指针变成最前面的0+1
+                l = firstZero+1;
+                //当前0入队尾
+                queue.offerLast(r);
+            }else if(queue.size()<k){
+                //当前0入队
+                queue.offerLast(r);
+            }
+        }
+        //当前窗口[l r] 长度为r-l+1
+        maxlen = Math.max(r-l+1,maxlen);
+        r++;
+    }
+    return maxlen;
+}
+```
+
+
+
+## 567. 字符串的排列
+
+[567. 字符串的排列](https://leetcode-cn.com/problems/permutation-in-string/)
+
+- 思路
+  - 利用数组统计s1所有字符的个数
+  - 遍历s2所有s1.length()长度的窗口
+    - 统计每个窗口中字符的个数, 
+    - 与s1对应的数组比较如果完全一样说明当前窗口是一个s1的排列
+
+![image-20210806204454243](Algorithm.assets/image-20210806204454243.png)
+
+```java
+int[] cnt1;
+int[] cnt2;
+public boolean checkInclusion(String s1, String s2) {
+    if(s2.length()<s1.length()){
+        return false;
+    }
+    cnt1 = new int[26];
+    cnt2 = new int[26];
+    for(char c : s1.toCharArray()){
+        cnt1[c-'a']++;
+    }
+    int l=0, r=-1, len1 = s1.length(), len2 = s2.length();
+    /**
+        最后一个窗口
+            左端点x  len2-1-x+1 = len1 ==> x = len2-len1
+        */
+    //形成窗口
+    while(r<len1-1){
+        r++;
+        cnt2[s2.charAt(r)-'a']++;
+
+    }
+    while(r<len2-1){
+        if(valid()){
+            return true;
+        }
+        cnt2[s2.charAt(l)-'a']--;
+        l++;
+        r++;
+        cnt2[s2.charAt(r)-'a']++;
+    }
+    return valid();
+}
+
+private boolean valid(){
+    for(int i=0; i<26; i++){
+        if(cnt1[i]!=cnt2[i]){
+            return false;
+        }
+    }
+    return true;
+
+
+
+}
+```
+
+
+
+
+
+
+
+
+
+## 1695.删除子数组的最大得分
+
+## 1151. 最少交换次数来组合所有的 1
+
+## 1208. 尽可能使字符串相等
+
+## 1052. 爱生气的书店老板
+
+## 1423. 可获得的最大点数
+
+
+
 # String Manipulation
 
 ## 字符串比较
