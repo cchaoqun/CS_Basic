@@ -1,5 +1,24 @@
 [TOC]
 
+
+
+# Linux面试
+
+## linux查看cpu占用率的命令
+
+https://www.cnblogs.com/mengchunchen/p/9669704.html
+
+### top命令
+
+- top命令是Linux下常用的性能分析工具，能够实时显示系统中各个进程的资源占用状况，类似于Windows的任务管理器。
+- 运行 top 命令后，CPU 使用状态会以全屏的方式显示，并且会处在对话的模式 -- 用基于 top 的命令，可以控制显示方式等等。退出 top 的命令为 q （在 top 运行中敲 q 键一次）。
+
+### ps命令
+
+- ps命令用于报告当前系统的进程状态。ps命令是最基本同时也是非常强大的进程查看命令，使用该命令可以确定有哪些进程正在运行和运行的状态、进程是否结束、进程有没有僵死、哪些进程占用了过多的资源等等，总之大部分信息都是可以通过执行该命令得到的。
+
+
+
 # Linux
 
 https://blog.csdn.net/ThinkWon/article/details/104588679?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522162825413816780264062121%2522%252C%2522scm%2522%253A%252220140713.130102334.pc%255Fall.%2522%257D&request_id=162825413816780264062121&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~first_rank_v2~rank_v29-3-104588679.pc_search_result_cache&utm_term=linux%E9%9D%A2%E8%AF%95%E9%A2%98&spm=1018.2226.3001.4187

@@ -773,6 +773,27 @@ public int largestRectangleArea(int[] heights){
 
 ```java
 //双指针
+双指针法真的妙，那么如何理解双指针法呢？听我来给你捋一捋。（捋的过程和原解中的C++在细节方面的处理是有出入的）
+
+我们先明确几个变量的意思：
+
+left_max：左边的最大值，它是从左往右遍历找到的
+right_max：右边的最大值，它是从右往左遍历找到的
+left：从左往右处理的当前下标
+right：从右往左处理的当前下标
+定理一：在某个位置i处，它能存的水，取决于它左右两边的最大值中较小的一个。
+
+定理二：当我们从左往右处理到left下标时，左边的最大值left_max对它而言是可信的，但right_max对它而言是不可信的。（见下图，由于中间状况未知，对于left下标而言，right_max未必就是它右边最大的值）
+
+定理三：当我们从右往左处理到right下标时，右边的最大值right_max对它而言是可信的，但left_max对它而言是不可信的。
+
+                                   right_max
+ left_max                             __
+   __                                |  |
+  |  |__   __??????????????????????  |  |
+__|     |__|                       __|  |__
+        left                      right
+对于位置left而言，它左边最大值一定是left_max，右边最大值“大于等于”right_max，这时候，如果left_max<right_max成立，那么它就知道自己能存多少水了。无论右边将来会不会出现更大的right_max，都不影响这个结果。 所以当left_max<right_max时，我们就希望去处理left下标，反之，我们希望去处理right下标。
 public int trap(int[] height){
     int n = height.length;
     int l = 0, r = n-1, lmax = 0, rmax = 0;
@@ -2117,6 +2138,135 @@ private boolean valid(){
 ## 1052. 爱生气的书店老板
 
 ## 1423. 可获得的最大点数
+
+
+
+# 图
+
+## 图遍历
+
+### 529. 扫雷游戏
+
+[529. 扫雷游戏](https://leetcode-cn.com/problems/minesweeper/)
+
+
+
+```java
+public class MIneSweep {
+    class Node {
+        int x;
+        int y;
+        public Node(int _x, int _y){
+            x = _x;
+            y = _y;
+        }
+    }
+    private static final int[] dirX = {0, 1, 0, -1, 1, 1, -1, -1};
+    private static final int[] dirY = {1, 0, -1, 0, 1, -1, 1, -1};
+    public char[][] updateBoard(char[][] board, int[] click) {
+        if(board==null || board.length==0 || board[0].length==0){
+            return new char[0][0];
+        }
+        int x = click[0], y = click[1];
+        if (board[x][y] == 'M') {
+            board[x][y] = 'X';
+        } else{
+            bfs( x, y,board);
+        }
+        return board;
+
+    }
+
+    private void bfs(int x, int y, char[][] board){
+        int m = board.length;
+        int n = board[0].length;
+        Deque<Node> queue = new ArrayDeque<>();
+        boolean[][] visited = new boolean[m][n];
+        queue.offer(new Node(x,y));
+        visited[x][y] = true;
+        while(!queue.isEmpty()){
+            int res = 0;
+            Node cur = queue.poll();
+            int curX = cur.x;
+            int curY = cur.y;
+            //统计[x,y]周围地雷的数量
+            for(int i=0; i<8; i++){
+                int _x = curX + dirX[i];
+                int _y = curY + dirY[i];
+                if(!inArea(_x, _y, board)){
+                    continue;
+                }
+                if(board[_x][_y]=='M'){
+                    res++;
+                }
+            }
+            //有地雷就标记数量结束
+            if(res>0){
+                board[curX][curY] = (char)(res+'0');
+            }else{
+                //没有地雷 继续递归周围的8个位置
+                board[curX][curY] = 'B';
+                for(int i=0; i<8; i++){
+                    int tx = curX + dirX[i];
+                    int ty = curY + dirY[i];
+                    if(!inArea(tx, ty, board) || board[tx][ty]!='E' || visited[tx][ty]){
+                        continue;
+                    }
+                    queue.offer(new Node(tx,ty));
+                    visited[tx][ty] = true;
+                }
+            }
+        }
+    }
+
+    private boolean inArea(int x, int y, char[][] board){
+        return 0<=x && x<board.length && 0<=y && y<board[0].length;
+    }
+
+
+}
+
+
+```
+
+
+
+
+
+## 55. 跳跃游戏
+
+[55. 跳跃游戏](https://leetcode-cn.com/problems/jump-game/)
+
+![image-20210807145849970](Algorithm.assets/image-20210807145849970.png)
+
+```java
+public boolean canJump(int[] nums) {
+    //当前可以到达的最远距离
+    int far = 0;
+    for(int i=0; i<nums.length; i++){
+        //当前位置不可达, 
+        if(i>far){
+            return false;
+        }
+        //当前可达, 但是无法从当前位置往后跳
+        if(nums[i]==0){
+            continue;
+        }
+        //更新能到达的最远距离
+        far = Math.max(far, i+nums[i]);
+    }
+    //最后一个位置是否可达
+    return far>=nums.length-1;
+}
+```
+
+
+
+
+
+
+
+
 
 
 
