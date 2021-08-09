@@ -1,5 +1,217 @@
 [TOC]
 
+# 排序
+
+https://www.cs.usfca.edu/~galles/visualization/ComparisonSort.html
+
+![image-20210809182623275](Algorithm.assets/image-20210809182623275.png)
+
+![image-20210809182748170](Algorithm.assets/image-20210809182748170.png)
+
+- 选择排序（了解）
+  思路：每一轮选取未排定的部分中最小的部分交换到未排定部分的最开头，经过若干个步骤，就能排定整个数组。即：先选出最小的，再选出第 2 小的，以此类推。
+
+- 插入排序（熟悉）
+
+  思路：每次将一个数字插入一个有序的数组里，成为一个长度更长的有序数组，有限次操作以后，数组整体有序。
+
+- 归并排序（重点）
+  基本思路：借助额外空间，合并两个有序数组，得到更长的有序数组。例如：「力扣」第 88 题：合并两个有序数组。
+  算法思想：分而治之（分治思想）。「分而治之」思想的形象理解是「曹冲称象」、MapReduce，在一定情况下可以并行化。
+
+- 快速排序（重点）
+
+  - 1、n大时好，快速排序比较占用内存，内存随n的增大而增大，但却是效率高不稳定的排序算法。
+  - 2、划分之后一边是一个，一边是n-1个，这种极端情况的时间复杂度就是O(N^2)
+  - 3、最好的情况是每次都能均匀的划分序列，O(N*log2N)
+  - 最优情况:Partition每次都划分得很均匀，如果排序n个关键字，其递归树的深度就为 [log2n]+1（ [x] 表示不大于 x 的最大整数），即仅需递归 log2n 次，需要时间为T（n）的话，第一次Partiation应该是需要对整个数组扫描一遍，做n次比较。然后，获得的枢轴将数组一分为二，那么各自还需要T（n/2）的时间（注意是最好情况，所以平分两半）。于是不断地划分下去，就有了下面的不等式推断：
+  - ![image-20210809183859353](Algorithm.assets/image-20210809183859353.png)
+
+- 堆排序（堆很重要，堆排序根据个人情况掌握）
+
+  - 所有情况下都是NlogN，稳定算法。
+
+  -  总时间=分解时间+解决问题时间+合并时间。分解时间就是把一个待排序序列分解成两序列，时间复杂度o(1).解决问题时间是两个递归式，把一个规模为n的问题分成两个规模分别为n/2的子问题，时间为2T(n/2).合并时间复杂度为o（n）。总时间T(n)=2T(n/2)+o(n).这个递归式可以用递归树来解，用递归树的方法解递归式T(n)=2T(n/2)+o(n):假设解决最后的子问题用时为常数c，则对于n个待排序记录来说整个问题的规模为cn。
+
+    
+
+- 希尔排序（不建议多花时间了解）
+  希尔排序的参考资料是《算法 4》。
+
+  思想来源：插入排序的优化。在插入排序里，如果靠后的数字较小，它来到前面就得交换多次。「希尔排序」改进了这种做法。带间隔地使用插入排序，直到最后「间隔」为 11 的时候，就是标准的「插入排序」，此时数组里的元素已经「几乎有序」了；
+  希尔排序的「间隔序列」其实是一个超参数，这方面有一些研究成果，有兴趣的朋友可以了解一下，但是如果这是面向笔试面试，就不用了解了
+
+- 冒泡排序（了解）
+  基本思想：外层循环每一次经过两两比较，把每一轮未排定部分最大的元素放到了数组的末尾；
+  「冒泡排序」有个特点：在遍历的过程中，提前检测到数组是有序的，从而结束排序，而不像「选择排序」那样，即使输入数据是有序的，「选择排序」依然需要「傻乎乎」地走完所有的流程
+
+
+
+
+
+
+[912. 排序数组](https://leetcode-cn.com/problems/sort-an-array/)
+
+## 快速排序
+
+```java
+public class quickSort {
+    Random rand = new Random();
+    public int[] sortArray(int[] nums) {
+        quickSort(nums, 0, nums.length-1);
+        return nums;
+    }
+    private void quickSort(int[] nums, int l, int r){
+        if(l>=r){
+            return;
+        }
+        int pivot = partition(nums, l, r);
+        quickSort(nums, l, pivot-1);
+        quickSort(nums, pivot+1, r);
+    }
+    private int partition(int[] nums, int l, int r){
+        int pivot = rand.nextInt(r-l+1)+l;
+        int cur = nums[pivot];
+        int index = l;
+        swap(nums, l, pivot);
+        for(int i=l+1; i<=r; i++){
+            if(nums[i]<=cur){
+                index++;
+                swap(nums, index, i);
+            }
+        }
+        swap(nums, l, index);
+        return index;
+    }
+    private void swap(int[] nums, int i, int j){
+        int temp = nums[i];
+        nums[i] = nums[j];
+        nums[j] = temp;
+    }
+}
+```
+
+
+
+## 归并排序
+
+```java
+public class mergeSort {
+    public int[] sortArray(int[] nums) {
+        int len = nums.length;
+        int[] temp = new int[len];
+        mergeSort(nums, 0, len - 1, temp);
+        return nums;
+    }
+
+    private void mergeSort(int[] nums, int l, int r, int[] temp){
+        if(l>=r){
+            return;
+        }
+
+        int mid = (l+r)>>>1;
+        mergeSort(nums, l, mid, temp);
+        mergeSort(nums, mid+1, r, temp);
+        mergeTwoSortedArray(nums, l, mid, r, temp);
+    }
+
+    private void mergeTwoSortedArray(int[] nums, int l, int mid, int r, int[] temp){
+        //System.arraycopy(nums, l, temp, l, r-l+1);
+        for(int i=l; i<=r; i++){
+            temp[i] = nums[i];
+        }
+
+        int i = l;
+        int j = mid+1;
+
+        for(int k=l; k<=r; k++){
+            if(i==mid+1){
+                nums[k] = temp[j];
+                j++;
+            }else if(j==r+1){
+                nums[k] = temp[i];
+                i++;
+            }else if(temp[i]<=temp[j]){
+                nums[k] = temp[i];
+                i++;
+            }else{
+                // temp[i]>temp[j]
+                nums[k] = temp[j];
+                j++;
+            }
+        }
+    }
+
+}
+```
+
+## 堆排序
+
+```java
+public class heapSort {
+    public int[] sortArray(int[] nums){
+        int len = nums.length;
+        heapify(nums);
+        //不断把最大的元素交换到末尾
+        for(int i=len-1; i>=0; ){
+            // 堆顶的元素交换到了最后一个位置, 这个元素是当前堆中最大的
+            swap(nums, i, 0);
+            i--;
+            // 因为本来在最后一个位置的元素交换到了堆顶, 需要下沉到合适的位置
+            // 并且已经找到了一个最大的元素, 堆中元素减一,
+            percolateDowm(nums, 0, i);
+        }
+        return nums;
+    }
+
+    private void heapify(int[] nums){
+        // 从 (nums.length-1)/2开始下沉即可
+        // 因为最后一个元素对应的父节点在数组中的下标 就是 (nums.length-1-1)/2
+        for(int i=(nums.length-1-1)/2; i>=0; i--){
+            percolateDowm(nums, i, nums.length-1);
+        }
+    }
+
+    /**
+     *
+     * @param nums 堆对应的数组
+     * @param k     当前需要下沉的数组
+     * @param end   当前堆的最后一个元素在数组中对应的下标
+     */
+    private void percolateDowm(int[] nums, int k, int end){
+        // 2*end+1 是k位置对应的左子节点在数组中的下标
+        while(2*k+1<=end){
+            // 找到左右子节点中较大的那个
+            int left = 2*k+1;
+            if(left+1<=end && nums[left+1]>nums[left]){
+                left++;
+            }
+            if(nums[k]<nums[left]){
+                swap(nums, k, left);
+                k = left;
+            }else{
+                break;
+            }
+        }
+    }
+
+    private void swap(int[] nums, int i, int j){
+        int temp = nums[i];
+        nums[i] = nums[j];
+        nums[j] = temp;
+    }
+}
+
+```
+
+
+
+
+
+
+
+
+
 # DP
 
 1. DP定义
@@ -1331,7 +1543,460 @@ private ListNode reverse(ListNode node, int n){
 
 # Tree
 
-## 99. 恢复二叉搜索树
+## 二叉树遍历
+
+
+
+### 144. 二叉树的前序遍历
+
+[144. 二叉树的前序遍历](https://leetcode-cn.com/problems/binary-tree-preorder-traversal/)
+
+- 中 --> 左--> 右
+
+```java
+public List<Integer> preorderTraversal(TreeNode root) {
+    List<Integer> list = new ArrayList<>();
+    if(root==null){
+        return list;
+    }
+    Deque<TreeNode> stack = new ArrayDeque<>();
+    stack.push(root);
+    while(!stack.isEmpty()){
+        root = stack.pop();
+        list.add(root.val);
+        //先右后左
+        if(root.right!=null){
+            stack.push(root.right);
+        }
+        if(root.left!=null){
+            stack.push(root.left);
+        }
+    }
+    return list;
+}
+
+public List<Integer> preorderTraversal(TreeNode root) {
+    List<Integer> list = new ArrayList<>();
+    if(root==null){
+        return list;
+    }
+    Deque<TreeNode> stack = new ArrayDeque<>();
+    
+    while(root!=null || !stack.isEmpty()){
+        //中左遍历完
+        while(root!=null){
+            stack.push(root);
+            list.add(root.val);
+            root = root.left;
+        }
+        //右
+        root = stack.pop();
+        root = root.right;
+    }
+    return list;
+}
+```
+
+
+
+### 94. 二叉树的中序遍历
+
+[94. 二叉树的中序遍历](https://leetcode-cn.com/problems/binary-tree-inorder-traversal/)
+
+```java
+public List<Integer> inorderTraversal(TreeNode root) {
+    List<Integer> list = new ArrayList<>();
+    if(root==null){
+        return list;
+    }
+    Deque<TreeNode> stack = new ArrayDeque<>();
+    while(root!=null || !stack.isEmpty()){
+        //左
+        while(root!=null){
+            stack.push(root);
+            root = root.left;
+        }
+        //中
+        root = stack.pop();
+        list.add(root.val);
+        //右
+        root = root.right;
+    }
+    return list;
+}
+```
+
+
+
+### 145. 二叉树的后序遍历
+
+[145. 二叉树的后序遍历](https://leetcode-cn.com/problems/binary-tree-postorder-traversal/)
+
+```java
+public List<Integer> postorderTraversal(TreeNode root) {
+    List<Integer> list = new ArrayList<>();
+    if(root==null){
+        return list;
+    }
+    Deque<TreeNode> stack = new ArrayDeque<>();
+    TreeNode prev = null;
+    while(root!=null || !stack.isEmpty()){
+        //左
+        while(root!=null){
+            stack.push(root);
+            root = root.left;
+        }
+        root = stack.pop();
+        //右子节点为null 或者右子节点以及遍历了
+        if(root.right==null || prev == root.right){
+            list.add(root.val);
+            prev = root;
+            root = null;
+        }else{
+            //右子节点还没遍历, 当前结点入栈, 先遍历右子树, 遍历完才遍历当前结点
+            stack.push(root);
+            root = root.right;
+        }
+    }
+    return list;
+}
+```
+
+
+
+### 102. 二叉树的层序遍历
+
+[102. 二叉树的层序遍历](https://leetcode-cn.com/problems/binary-tree-level-order-traversal/)
+
+```java
+//BFS
+public List<List<Integer>> levelOrder(TreeNode root) {
+    List<List<Integer>> list = new ArrayList<>();
+    dfs(root, list, 0);
+    return list;
+
+}
+
+private void dfs(TreeNode node, List<List<Integer>> list, int level){
+    if(node==null){
+        return;
+    }
+    if(list.size()<=level){
+        list.add(new ArrayList<>());
+    }
+    list.get(level).add(node.val);
+    dfs(node.left, list, level+1);
+    dfs(node.right, list, level+1);
+}
+//DFS
+public List<List<Integer>> levelOrder(TreeNode root) {
+    List<List<Integer>> list = new ArrayList<>();
+    if(root==null){
+        return list;
+    }
+    Deque<TreeNode> queue = new ArrayDeque<>();
+    queue.offer(root);
+    while(!queue.isEmpty()){
+        List<Integer> cur = new ArrayList<>();
+        for(int i=queue.size(); i>0; i--){
+            TreeNode node = queue.poll();
+            cur.add(node.val);
+            if(node.left!=null){
+                queue.offer(node.left);
+            }
+            if(node.right!=null){
+                queue.offer(node.right);
+            }
+        }
+        list.add(cur);
+    }
+    return list;
+}
+```
+
+
+
+### 103. 二叉树的锯齿形层序遍历
+
+[103. 二叉树的锯齿形层序遍历](https://leetcode-cn.com/problems/binary-tree-zigzag-level-order-traversal/)
+
+- 思路 
+
+  - 偶数层 addFrist
+  - 奇数次 addLast
+
+  ![image-20210809151234302](Algorithm.assets/image-20210809151234302.png)
+
+
+
+```java
+//BFS
+public List<List<Integer>> zigzagLevelOrder(TreeNode root) {
+    /**
+         偶数层 0 2 4
+         左 --> 右 遍历本层结点 先左子节点后右子节点
+         奇数层 1 3 5
+         右 --> 左 先右子节点后左子节点
+         具体实现
+         不论那一层 都先左后右加入队列
+         偶数层 addLast到list
+         奇数层 addFirst到list        
+         */
+    List<List<Integer>> res = new ArrayList<>();
+    if(root==null){
+        return res;
+    }
+    Queue<TreeNode> queue = new LinkedList<>();
+    int flag = 0;
+    queue.offer(root);
+    while(!queue.isEmpty()){
+        //双端队列
+        Deque<Integer> list = new LinkedList<>();
+        for(int i=queue.size(); i>0; i--){
+            TreeNode node = queue.poll();
+            if(flag==0){
+                list.addLast(node.val);
+            }else{
+                list.addFirst(node.val);
+            }
+            if(node.left!=null){
+                queue.offer(node.left);
+            }
+            if(node.right!=null){
+                queue.offer(node.right);
+            }
+        }
+        //转换成链表
+        res.add(new LinkedList(list));
+        flag ^= 1;
+    }
+    return res;
+}
+//DFS
+public List<List<Integer>> zigzagLevelOrder(TreeNode root) {
+    List<List<Integer>> res = new ArrayList<>();
+    if(root==null){
+        return res;
+    }
+    dfs(root, res, 0);
+    return res;
+
+}
+private void dfs(TreeNode node, List<List<Integer>> list, int level){
+    if(node==null){
+        return;
+    }
+    if(list.size()<=level){
+        list.add(new LinkedList<Integer>());
+    }
+    List<Integer> cur = list.get(level);
+    if(level%2==0){
+        cur.add(node.val);
+    }else{
+        cur.add(0,node.val);
+    }
+    dfs(node.left, list, level+1);
+    dfs(node.right, list, level+1);
+}
+```
+
+
+
+
+
+
+
+### 199. 二叉树的右视图
+
+[199. 二叉树的右视图](https://leetcode-cn.com/problems/binary-tree-right-side-view/)
+
+- 层序遍历左->右最后一个遍历到的就是这一层的右视图
+- 变成先右后左, 那么层序遍历每层第一个结点就是最右的
+
+```java
+//DFS
+public List<Integer> rightSideView(TreeNode root) {
+    List<Integer> res = new ArrayList<>();
+    dfs(root, res, 0);
+    return res;
+}
+
+private void dfs(TreeNode node, List<Integer> list, int level){
+    if(node==null){
+        return;
+    }
+    //这一层还没有
+    if(list.size()<=level){
+        list.add(node.val);
+    }
+    //先右后左
+    dfs(node.right, list, level+1);
+    dfs(node.left, list, level+1);
+}
+
+//BFS 左->右 加入每层的最后一个结点
+public List<Integer> rightSideView(TreeNode root) {
+    List<Integer> res = new ArrayList<>();
+    if(root==null){
+        return res;
+    }
+    Deque<TreeNode> queue = new ArrayDeque<>();
+    queue.offer(root);
+    while(!queue.isEmpty()){
+        for(int i=queue.size(); i>0; i--){
+            TreeNode node = queue.poll();
+            //这一层最后一个元素 
+            if(i==1){
+                res.add(node.val);
+            }
+            if(node.left!=null){
+                queue.offer(node.left);
+            }
+            if(node.right!=null){
+                queue.offer(node.right);
+            }
+        }
+    }
+    return res;
+}
+
+//BFS 右->左, 加入每层的第一个结点
+public List<Integer> rightSideView(TreeNode root) {
+    List<Integer> res = new ArrayList<>();
+    if(root==null){
+        return res;
+    }
+    Deque<TreeNode> queue = new ArrayDeque<>();
+    queue.offer(root);
+    while(!queue.isEmpty()){
+        res.add(queue.peek().val);
+        for(int i=queue.size(); i>0; i--){
+            TreeNode node = queue.poll();
+            if(node.right!=null){
+                queue.offer(node.right);
+            }
+            if(node.left!=null){
+                queue.offer(node.left);
+            }
+        }
+    }
+    return res;
+}
+```
+
+
+
+![image-20210809162117511](Algorithm.assets/image-20210809162117511.png)
+
+
+
+
+
+## 恢复二叉树
+
+### 889. 根据前序和后序遍历构造二叉树
+
+[889. 根据前序和后序遍历构造二叉树](https://leetcode-cn.com/problems/construct-binary-tree-from-preorder-and-postorder-traversal/)
+
+- 前序 [根 [左] [右]]
+- 后序 [[左] [右] 根]
+
+```java
+int[] pre;
+int[] post;
+public TreeNode constructFromPrePost(int[] pre, int[] post) {
+    this.pre = pre;
+    this.post = post;
+    return dfs(0,0,post.length);
+
+}
+
+private TreeNode dfs(int preIndex, int postIndex, int count){
+    if(count==0){
+        return null;
+    }
+    TreeNode root = new TreeNode(pre[preIndex]);
+    if(count==1){
+        return root;
+    }
+    //后序遍历左子树的最后一个结点是前序遍历左子树的第一个结点 pre[preInedx+1] = postIndex[postIndex+L-1]
+    int l = 1;
+    for(;l<count; l++){
+        //后序遍历左子树的最后一个结点是前序遍历左子树的第一个结点
+        if(pre[preIndex+1]==post[postIndex+l-1]){
+            break;
+        }
+    }
+    //左子树一共 l个结点 右子树一共count-l 个结点 根结点1个结点
+    //左子树开始结点下标在前序遍历是根结点+1
+    //后序遍历左子树结束下标就是postIndex
+    root.left = dfs(preIndex+1, postIndex, l);
+    //右子树开始结点下标在前序遍历是根结点+左子树数量+1, 
+    //在后续遍历是左子树结束下标+左子树数量
+    root.right = dfs(preIndex+l+1, postIndex+l, count-l-1);	
+    return root;                                 
+}
+```
+
+
+
+
+
+
+
+### 105. 从前序与中序遍历序列构造二叉树
+
+[105. 从前序与中序遍历序列构造二叉树](https://leetcode-cn.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/)
+
+- 思路
+  - 对于前序遍历 [根 | 左子树 | 右子树]
+  - 对于中序遍历 [左子树 | 根 | 右子树]
+  - 一次遍历前序遍历数组, 找到当前元素在中序遍历中的位置i
+    - 需要map<inNum, inIndex> 
+    - [l:i-1] [i+1, r] 构建左右子树
+
+```java
+public TreeNode buildTree(int[] preorder, int[] inorder) {
+    Map<Integer, Integer> map = new HashMap<>();
+    for(int i=0; i<inorder.length; i++){
+        map.put(inorder[i], i);
+    }
+    int[] nextIndex = new int[]{-1};
+    return build(preorder, inorder, nextIndex, map, 0, preorder.length-1);
+}
+
+private TreeNode build(int[] preorder, int[] inorder, int[] nextIndex, Map<Integer, Integer> map, int l, int r){
+    if(l>r){
+        return null;
+    }
+    nextIndex[0]++;
+    //区间只有一个结点
+    if(l==r){
+        return new TreeNode(inorder[l]);
+    }
+    //获取当前的根结点
+    int curIndex = map.get(preorder[nextIndex[0]]);
+    TreeNode root = new TreeNode(inorder[curIndex]);
+    //递归构建左右子树
+    TreeNode left = build(preorder, inorder, nextIndex, map, l, curIndex-1);
+    TreeNode right = build(preorder, inorder, nextIndex, map, curIndex+1, r);
+    root.left = left;
+    root.right = right;
+    return root;
+}
+```
+
+
+
+![image-20210809164500219](Algorithm.assets/image-20210809164500219.png)
+
+
+
+
+
+
+
+### 99. 恢复二叉搜索树
 
 [99. 恢复二叉搜索树](https://leetcode-cn.com/problems/recover-binary-search-tree/)
 
@@ -1427,7 +2092,85 @@ private void swap(TreeNode x, TreeNode y){
 }
 ```
 
-## 129. 求根节点到叶节点数字之和
+
+
+
+
+## 路径和问题
+
+
+
+### 543. 二叉树的直径
+
+[543. 二叉树的直径](https://leetcode-cn.com/problems/diameter-of-binary-tree/)
+
+- 思路
+  - 后续遍历, 得到左右子树的深度
+  - 更新当前的最大值 l+r
+  - 返回左右子树较深的深度+1
+
+
+
+```java
+public int diameterOfBinaryTree(TreeNode root) {
+    int[] max = new int[]{-1};
+    dfs(root, max);
+    return max[0];
+}
+
+private int dfs(TreeNode node, int[] max){
+    if(node==null){
+        return 0;
+    }
+    int l = dfs(node.left, max);
+    int r = dfs(node.right, max);
+    max[0] = Math.max(max[0], l+r);
+    return Math.max(l,r)+1;
+}
+```
+
+
+
+
+
+### 124. 二叉树中的最大路径和
+
+[124. 二叉树中的最大路径和](https://leetcode-cn.com/problems/binary-tree-maximum-path-sum/)
+
+- 思路
+  - 后续遍历, 最大值可能是node.val + (l, r, l+r, 0) 中的最大值
+    - node + 左子树路径
+    - node + 右子树路径
+    - 左子树路径+node + 右子树路径
+    - node 
+  - 返回 可能是 node, node+Math.max(r,l) 只能是一条路径或者只是结点值
+
+
+
+```java
+public int maxPathSum(TreeNode root) {
+    int[] max = new int[]{Integer.MIN_VALUE};
+    dfs(root, max);
+    return max[0];
+}
+
+private int dfs(TreeNode node, int[] max){
+    if(node==null){
+        return 0;
+    }
+    //保证结果非负
+    int l = Math.max(dfs(node.left, max),0);
+    int r = Math.max(dfs(node.right, max),0);
+    max[0] = Math.max(max[0], l+r+node.val);
+    return Math.max(r,l)+node.val
+}
+```
+
+
+
+
+
+### 129. 求根节点到叶节点数字之和
 
 [129. 求根节点到叶节点数字之和](https://leetcode-cn.com/problems/sum-root-to-leaf-numbers/)
 
@@ -1458,7 +2201,7 @@ private int dfs(TreeNode node, int path){
 
 
 
-## 1740. 找到二叉树中的距离
+### 1740. 找到二叉树中的距离
 
 - 思路: 找到两个结点的最深公共祖先,
   - left  right 表示p q 到父节点中间的结点数量(包括p q, 不包括祖先结点
@@ -1471,6 +2214,128 @@ private int dfs(TreeNode node, int path){
 [1740. 找到二叉树中的距离](https://leetcode-cn.com/problems/find-distance-in-a-binary-tree/)
 
 ![image-20210803015332333](AlgorithmClub.assets/image-20210803015332333.png)
+
+
+
+## 二叉树旋转
+
+### 226. 翻转二叉树
+
+[226. 翻转二叉树](https://leetcode-cn.com/problems/invert-binary-tree/)
+
+- 先旋转当前结点, 再递归旋转左右子树
+
+```java
+public TreeNode invertTree(TreeNode root) {
+    if(root==null){
+        return null;
+    }
+    TreeNode l = root.left;
+    root.left = root.right;
+    root.right = l;
+    invertTree(root.left);
+    invertTree(root.right);
+    return root;
+
+}
+```
+
+
+
+
+
+## 二叉树祖先问题
+
+### 235. 二叉搜索树的最近公共祖先
+
+[235. 二叉搜索树的最近公共祖先](https://leetcode-cn.com/problems/lowest-common-ancestor-of-a-binary-search-tree/)
+
+```java
+public TreeNode lowestCommonAncestor(TreeNode root, TreeNode p, TreeNode q) {
+    if(root==null){
+        return null;
+    }
+    //保证p.val < q.val
+    if(root!=null && p.val>q.val){
+        return lowestCommonAncestor(root, q,p);
+    }
+    //等于其中人一个就返回当前结点
+    if(root.val==p.val || root.val==q.val){
+        return root;
+    }
+    //两个结点都在右子树
+    if(root.val < p.val && root.val < q.val){
+        return lowestCommonAncestor(root.right,p,q);
+    }
+    //两个结点都在左子树
+    if(root.val > p.val  && root.val > q.val){
+        return lowestCommonAncestor(root.left, p, q);
+    }
+    //两个结点分在两边
+    if(p.val < root.val && root.val < q.val){
+        return root;
+    }
+    return null;
+}
+
+public TreeNode lowestCommonAncestor(TreeNode root, TreeNode p, TreeNode q) {
+    TreeNode ancestor = root;
+    while (true) {
+        if (p.val < ancestor.val && q.val < ancestor.val) {
+            ancestor = ancestor.left;
+        } else if (p.val > ancestor.val && q.val > ancestor.val) {
+            ancestor = ancestor.right;
+        } else {
+            break;
+        }
+    }
+    return ancestor;
+}
+
+
+```
+
+
+
+
+
+
+
+
+
+### 236. 二叉树的最近公共祖先
+
+[236. 二叉树的最近公共祖先](https://leetcode-cn.com/problems/lowest-common-ancestor-of-a-binary-tree/)
+
+
+
+```java
+public TreeNode lowestCommonAncestor(TreeNode root, TreeNode p, TreeNode q) {
+    if(root==null){
+        return root;
+    }
+    //等于任意一个返回当前结点
+    if(root.val==p.val || root.val==q.val){
+        return root;
+    }
+    //左右子树去找
+    TreeNode l = lowestCommonAncestor(root.left, p, q);
+    TreeNode r = lowestCommonAncestor(root.right, p, q);
+    // 都为null或者一个为null返回另外一个
+    if(l==null){
+        return r;
+    }
+    if(r==null){
+        return l;
+    }
+    //都不为null返回当前结点
+    return root;
+}
+```
+
+
+
+
 
 
 

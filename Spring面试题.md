@@ -28,6 +28,10 @@ https://juejin.cn/post/6844903478582575111
 
 
 
+https://juejin.cn/post/6844903860658503693
+
+
+
 # bean作用域：理解Bean生命周期
 
  在bean准备就绪给我们使用之前，容器默默的执行了很多启动步骤。Spring提供了BeanFactory作为Spring容器，平常开发中我们常用其派生类ApplicationContext。尽管BeanFactory和ApplicationContext容器的注册方式不太一样（使用BeanFactory要显式地调用其addBeanPostProcessor()方法进行注册）以及加载bean的时机不一样（BeanFactory默认采用延迟加载）等，但对于bean的生命周期管控基本一致。
