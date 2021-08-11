@@ -6,7 +6,7 @@
 
 - - [x] You can't easily run your Raft implementation directly; instead you should run it by way of the tester, i.e. `go test -run 2A`.
 - - [x] Follow the paper's Figure 2. At this point you care about 
-    - [ ] sending and receiving RequestVote RPCs, 
+    - [ ]  sending and receiving RequestVote RPCs, 
     - [ ] the Rules for Servers that relate to elections,
     - [ ]  and the State related to leader election,
 - - [x] Add the Figure 2 state for leader election to the `Raft` struct in `raft.go`. 
@@ -1280,7 +1280,7 @@ Get returns: APPLY_TIMEOUT/FAILED_REQUEST/SUCCESS/DUPLICATE_REQUEST
 5. 初始化每个分片的接收操作
    1. for i := 0; i < shardctrler.NShards; i++ {
       		go kv.shardOperationLoop(i)
-      	}
+         	}
 
 
 
@@ -1443,7 +1443,7 @@ configListenLoop 定期拉取最新的Config并应用
    1. 向raft层发起共识请求, 同步这个更新configuration的请求
    2. kv.rf.Start(GeneralInput{
       				OpType: UPDATE_CONFIG,
-      				Input:  config,
+         				Input:  config,
       })
 
 
@@ -1565,11 +1565,33 @@ configListenLoop 定期拉取最新的Config并应用
 
 
 
-## 
+# 总结
 
+## 如何选主
 
+## 如何实现心跳机制
 
+## 如何实现日志复制
 
+## KVServer如何和Raft一起实现的一致性
+
+## 数据库怎么分片的
+
+## shardMaster如何处理客户端的请求
+
+### reconfiguration的时候客户端请求同步到达如何处理
+
+## shardMaster如何分配shard到各个分片
+
+## reconfiguration如何实现分片的迁移
+
+## Raft结点之间如何通过RPC通信的
+
+# 遇到的问题
+
+## RPC通信问题
+
+- raft结点之间的通信是通过RPC, 但是一开始不了解, 没有注意到在序列化和反序列化的时候, 没有按照一致的顺序, 导致接收到反序列数据出错, 得不到正确的数据
 
 
 

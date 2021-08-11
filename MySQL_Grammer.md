@@ -106,6 +106,191 @@ AND l1.num=l2.num AND l2.num=l3.num
 
 ![image-20210805185007328](MySQL_Grammer.assets/image-20210805185007328.png)
 
+## 181. 超过经理收入的员工
+
+[181. 超过经理收入的员工](https://leetcode-cn.com/problems/employees-earning-more-than-their-managers/)
+
+![image-20210810205543160](MySQL_Grammer.assets/image-20210810205543160.png)
+
+```MySql
+Select a.Name as Employee
+from Employee a INNER Join Employee b
+ON a.ManagerId = b.Id
+where a.Salary > b.Salary
+```
+
+
+
+## 182. 查找重复的电子邮箱
+
+[182. 查找重复的电子邮箱](https://leetcode-cn.com/problems/duplicate-emails/)
+
+![image-20210810205514800](MySQL_Grammer.assets/image-20210810205514800.png)
+
+
+
+```mysql
+select DISTINCT a.Email as Email
+from Person a join Person b
+where a.Id!=b.Id AND a.Email = b.Email
+
+#groupby + 子查询
+select a.Email as Email from
+(
+    select Email, count(*) as cnt
+    from Person
+    group by Email
+) as a
+where a.cnt>1
+# groupby + having
+select Email
+from Person
+group by Email
+having count(Email)>1
+```
+
+
+
+## 183. 从不订购的客户
+
+[183. 从不订购的客户](https://leetcode-cn.com/problems/customers-who-never-order/)
+
+![image-20210810211619399](MySQL_Grammer.assets/image-20210810211619399.png)
+
+
+
+```mysql
+#连接查询
+select c.Name as Customers 
+from Customers c left join Orders o 
+on c.Id = o.CustomerId
+where o.CustomerId is null;
+
+#子查询 not in 
+select c.Name as Customers 
+from Customers c 
+where c.Id not in (
+    select CustomerId
+    from Orders
+)
+```
+
+
+
+## 184. 部门工资最高的员工
+
+[184. 部门工资最高的员工](https://leetcode-cn.com/problems/department-highest-salary/)
+
+![image-20210810211902591](MySQL_Grammer.assets/image-20210810211902591.png)
+
+```mysql
+select 
+	d.Name as Department, 
+	e.Name as Employee, 
+	Salary
+from Employee e 
+join Department d 
+on e.DepartmentId = d.Id 
+where (e.DepartmentId, e.Salary) in (
+	select DepartmentId, Max(Salary)
+    from Employee 
+    group by DepartmentId
+)
+```
+
+
+
+## 185. 部门工资前三高的所有员工
+
+[185. 部门工资前三高的所有员工](https://leetcode-cn.com/problems/department-top-three-salaries/)
+
+
+
+![image-20210810214649471](MySQL_Grammer.assets/image-20210810214649471.png)
+
+```mysql
+select d.Name as Department ,
+e1.Name as Employee ,
+Salary
+from Employee e1 
+join Department d
+on e1.DepartmentId = d.Id
+#前三 那么严格大于这些人的salary不超过3
+where 3 >
+#Employee中>e1.Salary并且department相同的员工数量
+(
+    select count(distinct e2.Salary)
+    from Employee e2 
+    where e2.Salary > e1.Salary 
+    AND e2.DepartmentId = e1.DepartmentId
+);
+```
+
+
+
+## 196. 删除重复的电子邮箱
+
+[196. 删除重复的电子邮箱](https://leetcode-cn.com/problems/delete-duplicate-emails/)
+
+![image-20210810215630449](MySQL_Grammer.assets/image-20210810215630449.png)
+
+```mysql
+delete p1 from Person p1 
+join Person p2 
+where p1.Email = p2.Email and p1.Id > p2.Id
+```
+
+
+
+## 197. 上升的温度
+
+[197. 上升的温度](https://leetcode-cn.com/problems/rising-temperature/)
+
+![image-20210810220907087](MySQL_Grammer.assets/image-20210810220907087.png)
+
+
+
+```mysql
+select w1.id as `id`
+from Weather w1
+join Weather w2
+where DATEDIFF(w1.recordDate, w2.recordDate)=1 
+and w1.Temperature > w2.Temperature
+
+```
+
+## 1777. 每家商店的产品价格
+
+[1777. 每家商店的产品价格](https://leetcode-cn.com/problems/products-price-for-each-store/)
+
+![image-20210810222643251](MySQL_Grammer.assets/image-20210810222643251.png)
+
+
+
+```mysql
+select
+    product_id,
+    sum(if(store='store1',price,null)) store1,
+    sum(if(store='store2',price,null)) store2,
+    sum(if(store='store3',price,null)) store3
+from
+    Products
+group by
+    product_id
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4437,7 +4622,6 @@ BEGIN
 END $
 
 ```
-
 
 
 

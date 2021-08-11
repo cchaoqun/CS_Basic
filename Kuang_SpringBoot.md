@@ -1,3 +1,436 @@
+# 总结
+
+https://blog.csdn.net/ThinkWon/article/details/104397299?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522162865061816780269816612%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=162865061816780269816612&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~top_yy~default-3-104397299.pc_search_result_control_group&utm_term=SpringBoot&spm=1018.2226.3001.4187
+
+## SpringBoot自动配置的原理
+
+所以，自动配置真正实现是从classpath中搜寻所有的META-INF/spring.factories配置文件 ，并将其中对应的 org.springframework.boot.autoconfigure. 包下的配置项，通过反射实例化为对应标注了 @Configuration的JavaConfig形式的IOC容器配置类 ， 然后将这些都汇总成为一个实例并加载到IOC容器中。
+
+**结论：**
+
+1. SpringBoot在启动的时候从类路径下的META-INF/spring.factories中获取EnableAutoConfiguration指定的值
+2. 将这些值作为自动配置类导入容器 ， 自动配置类就生效 ， 帮我们进行自动配置工作；
+3. 整个J2EE的整体解决方案和自动配置都在springboot-autoconfigure的jar包中；
+4. 它会给容器中导入非常多的自动配置类 （xxxAutoConfiguration）, 就是给容器中导入这个场景需要的所有组件 ， 并配置好这些组件 ；
+5. 有了自动配置类 ， 免去了我们手动编写配置注入功能组件等的工作；
+
+**现在大家应该大概的了解了下，SpringBoot的运行原理，后面我们还会深化一次！**
+
+
+
+![image-20210527141408326](C:\Users\Chaoq\AppData\Roaming\Typora\typora-user-images\image-20210527141408326.png)
+
+
+
+
+
+![image-20210527161632518](C:\Users\Chaoq\AppData\Roaming\Typora\typora-user-images\image-20210527161632518.png)
+
+## 什么是 Spring Boot？
+
+Spring Boot 是 Spring 开源组织下的子项目，是 Spring 组件一站式解决方案，主要是简化了使用 Spring 的难度，简省了繁重的配置，提供了各种启动器，开发者能快速上手。
+
+## Spring Boot 有哪些优点？
+
+Spring Boot 主要有如下优点：
+
+容易上手，提升开发效率，为 Spring 开发提供一个更快、更广泛的入门体验。
+开箱即用，远离繁琐的配置。
+提供了一系列大型项目通用的非业务性功能，例如：内嵌服务器、安全管理、运行数据监控、运行状况检查和外部化配置等。
+没有代码生成，也不需要XML配置。
+避免大量的 Maven 导入和各种版本冲突
+
+## Spring Boot 的核心注解是哪个？它主要由哪几个注解组成的？
+
+启动类上面的注解是@SpringBootApplication，它也是 Spring Boot 的核心注解，主要组合包含了以下 3 个注解：
+
+- @SpringBootConfiguration：组合了 @Configuration 注解，实现配置文件的功能。
+
+- @EnableAutoConfiguration：打开自动配置的功能，
+  - 也可以关闭某个自动配置的选项，如关闭数据源自动配置功能： @SpringBootApplication(exclude = { DataSourceAutoConfiguration.class })。
+- @ComponentScan：Spring组件扫描。
+
+
+
+## Spring Boot 自动配置原理是什么？
+
+- 注解 @EnableAutoConfiguration, @Configuration, @ConditionalOnClass 就是自动配置的核心，
+- @EnableAutoConfiguration 给容器导入META-INF/spring.factories 里定义的自动配置类。
+
+- 筛选有效的自动配置类。
+
+- 每一个自动配置类结合对应的 xxxProperties.java 读取配置文件进行自动配置功能
+
+
+
+### 自动配置原理
+
+https://blog.csdn.net/u014745069/article/details/83820511?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522162865061816780269872614%2522%252C%2522scm%2522%253A%252220140713.130102334.pc%255Fblog.%2522%257D&request_id=162865061816780269872614&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~first_rank_v2~rank_v29-10-83820511.pc_search_result_control_group&utm_term=SpringBoot&spm=1018.2226.3001.4187
+
+#### Spring Boot的配置文件
+
+初识Spring Boot时我们就知道，Spring Boot有一个全局配置文件：application.properties或application.yml。
+
+我们的各种属性都可以在这个文件中进行配置，最常配置的比如：server.port、logging.level.* 等等，然而我们实际用到的往往只是很少的一部分，那么这些属性是否有据可依呢？答案当然是肯定的，这些属性都可以在官方文档中查找到：
+
+https://docs.spring.io/spring-boot/docs/2.1.0.RELEASE/reference/htmlsingle/#common-application-properties
+
+![image-20210811130902451](Kuang_SpringBoot.assets/image-20210811130902451.png)
+
+
+
+#### 工作原理剖析
+
+Spring Boot关于自动配置的源码在spring-boot-autoconfigure-x.x.x.x.jar中：
+
+![image-20210811131037912](Kuang_SpringBoot.assets/image-20210811131037912.png)
+
+当然，自动配置原理的相关描述，官方文档貌似是没有提及。不过我们不难猜出，Spring Boot的启动类上有一个@SpringBootApplication注解，这个注解是Spring Boot项目必不可少的注解。那么自动配置原理一定和这个注解有着千丝万缕的联系！
+
+####  @SpringBootApplication
+
+
+ @SpringBootApplication是一个复合注解或派生注解，在@SpringBootApplication中有一个注解@EnableAutoConfiguration，翻译成人话就是开启自动配置，其定义如下：
+
+![image-20210811131201427](Kuang_SpringBoot.assets/image-20210811131201427.png)
+
+
+
+#### @EnableAutoConfiguration
+
+而这个注解也是一个派生注解，其中的关键功能由@Import提供，
+
+其导入的AutoConfigurationImportSelector的selectImports()方法通过SpringFactoriesLoader.loadFactoryNames()扫描所有具有META-INF/spring.factories的jar包。
+
+spring-boot-autoconfigure-x.x.x.x.jar里就有一个这样的spring.factories文件。
+
+![image-20210811131343189](Kuang_SpringBoot.assets/image-20210811131343189.png)
+
+这个spring.factories文件也是一组一组的key=value的形式，其中一个key是EnableAutoConfiguration类的全类名，而它的value是一个xxxxAutoConfiguration的类名的列表，这些类名以逗号分隔，如下图所示：
+
+这个@EnableAutoConfiguration注解通过@SpringBootApplication被间接的标记在了Spring Boot的启动类上。在SpringApplication.run(...)的内部就会执行selectImports()方法，找到所有JavaConfig自动配置类的全限定名对应的class，然后将所有自动配置类加载到Spring容器中。
+
+![image-20210811131613176](Kuang_SpringBoot.assets/image-20210811131613176.png)
+
+
+
+#### 自动配置生效
+
+每一个XxxxAutoConfiguration自动配置类都是在某些条件之下才会生效的，这些条件的限制在Spring Boot中以注解的形式体现，常见的条件注解有如下几项：
+
+- @ConditionalOnBean：当容器里有指定的bean的条件下。
+
+- @ConditionalOnMissingBean：当容器里不存在指定bean的条件下。
+
+- @ConditionalOnClass：当类路径下有指定类的条件下。
+
+- @ConditionalOnMissingClass：当类路径下不存在指定类的条件下。
+
+- @ConditionalOnProperty：指定的属性是否有指定的值，比如@ConditionalOnProperties(prefix=”xxx.xxx”, value=”enable”, matchIfMissing=true)，代表当xxx.xxx为enable时条件的布尔值为true，如果没有设置的情况下也为true。
+
+
+以ServletWebServerFactoryAutoConfiguration配置类为例，解释一下全局配置文件中的属性如何生效，比如：server.port=8081，是如何生效的（当然不配置也会有默认值，这个默认值来自于org.apache.catalina.startup.Tomcat）。
+
+![image-20210811131811295](Kuang_SpringBoot.assets/image-20210811131811295.png)
+
+在ServletWebServerFactoryAutoConfiguration类上，有一个@EnableConfigurationProperties注解：开启配置属性，而它后面的参数是一个ServerProperties类，这就是习惯优于配置的最终落地点。
+
+![image-20210811131845531](Kuang_SpringBoot.assets/image-20210811131845531.png)
+
+- 在这个类上，我们看到了一个非常熟悉的注解：@ConfigurationProperties，
+- 它的作用就是从配置文件中绑定属性到对应的bean上，
+- 而@EnableConfigurationProperties负责导入这个已经绑定了属性的bean到spring容器中（见上面截图）。
+- 那么所有其他的和这个类相关的属性都可以在全局配置文件中定义，
+- 也就是说，真正“限制”我们可以在全局配置文件中配置哪些属性的类就是这些XxxxProperties类，它与配置文件中定义的prefix关键字开头的一组属性是唯一对应的。
+
+至此，我们大致可以了解。在全局配置的属性如：server.port等，通过@ConfigurationProperties注解，绑定到对应的XxxxProperties配置实体类上封装为一个bean，然后再通过@EnableConfigurationProperties注解导入到Spring容器中。
+
+而诸多的XxxxAutoConfiguration自动配置类，就是Spring容器的JavaConfig形式，作用就是为Spring 容器导入bean，而所有导入的bean所需要的属性都通过xxxxProperties的bean来获得。
+
+可能到目前为止还是有所疑惑，但面试的时候，其实远远不需要回答的这么具体，你只需要这样回答：
+
+> Spring Boot启动的时候会通过@EnableAutoConfiguration注解找到META-INF/spring.factories配置文件中的所有自动配置类，并对其进行加载，
+>
+> 而这些自动配置类都是以AutoConfiguration结尾来命名的，它实际上就是一个JavaConfig形式的Spring容器配置类，
+>
+> 它能通过以Properties结尾命名的类中取得在全局配置文件中配置的属性如：server.port，
+>
+> 而XxxxProperties类是通过@ConfigurationProperties注解与全局配置文件中对应的属性进行绑定的。
+
+通过一张图标来理解一下这一繁复的流程：
+
+![](Kuang_SpringBoot.assets/how-spring-boot-autoconfigure-works.png)
+
+ 图片来自于王福强老师的博客：https://afoo.me/posts/2015-07-09-how-spring-boot-works.html 
+
+#### 总结
+
+综上是对自动配置原理的讲解。当然，在浏览源码的时候一定要记得不要太过拘泥与代码的实现，而是应该抓住重点脉络。
+
+一定要记得XxxxProperties类的含义是：封装配置文件中相关属性；XxxxAutoConfiguration类的含义是：自动配置类，目的是给容器中添加组件。
+
+而其他的主方法启动，则是为了加载这些五花八门的XxxxAutoConfiguration类
+
+
+
+
+
+
+### 自动配置原理
+
+配置文件到底能写什么？怎么写？
+
+SpringBoot官方文档中有大量的配置，我们无法全部记住
+
+![Image](https://mmbiz.qpic.cn/mmbiz_png/uJDAUKrGC7IPEXZtUAUBhnSZvUmrPzbD7ibqw837BhN1F7lHdAMhMmYNCYF2tSdvUGv0y3X48tzetuuYc8tUMLg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+
+
+
+### 分析自动配置原理
+
+我们以**HttpEncodingAutoConfiguration（Http编码自动配置）**为例解释自动配置原理；
+
+```
+//表示这是一个配置类，和以前编写的配置文件一样，也可以给容器中添加组件；
+@Configuration 
+
+//启动指定类的ConfigurationProperties功能；
+  //进入这个HttpProperties查看，将配置文件中对应的值和HttpProperties绑定起来；
+  //并把HttpProperties加入到ioc容器中
+@EnableConfigurationProperties({HttpProperties.class}) 
+
+//Spring底层@Conditional注解
+  //根据不同的条件判断，如果满足指定的条件，整个配置类里面的配置就会生效；
+  //这里的意思就是判断当前应用是否是web应用，如果是，当前配置类生效
+@ConditionalOnWebApplication(
+    type = Type.SERVLET
+)
+
+//判断当前项目有没有这个类CharacterEncodingFilter；SpringMVC中进行乱码解决的过滤器；
+@ConditionalOnClass({CharacterEncodingFilter.class})
+
+//判断配置文件中是否存在某个配置：spring.http.encoding.enabled；
+  //如果不存在，判断也是成立的
+  //即使我们配置文件中不配置pring.http.encoding.enabled=true，也是默认生效的；
+@ConditionalOnProperty(
+    prefix = "spring.http.encoding",
+    value = {"enabled"},
+    matchIfMissing = true
+)
+
+public class HttpEncodingAutoConfiguration {
+    //他已经和SpringBoot的配置文件映射了
+    private final Encoding properties;
+    //只有一个有参构造器的情况下，参数的值就会从容器中拿
+    public HttpEncodingAutoConfiguration(HttpProperties properties) {
+        this.properties = properties.getEncoding();
+    }
+    
+    //给容器中添加一个组件，这个组件的某些值需要从properties中获取
+    @Bean
+    @ConditionalOnMissingBean //判断容器没有这个组件？
+    public CharacterEncodingFilter characterEncodingFilter() {
+        CharacterEncodingFilter filter = new OrderedCharacterEncodingFilter();
+        filter.setEncoding(this.properties.getCharset().name());
+     filter.setForceRequestEncoding(this.properties.shouldForce(org.springframework.boot.autoconfigure.http.HttpProperties.Encoding.Type.REQUEST));
+        filter.setForceResponseEncoding(this.properties.shouldForce(org.springframework.boot.autoconfigure.http.HttpProperties.Encoding.Type.RESPONSE));
+        return filter;
+    }
+    //。。。。。。。
+}
+```
+
+**一句话总结 ：根据当前不同的条件判断，决定这个配置类是否生效！**
+
+- 一但这个配置类生效；这个配置类就会给容器中添加各种组件；
+- 这些组件的属性是从对应的properties类中获取的，这些类里面的每一个属性又是和配置文件绑定的；
+- 所有在配置文件中能配置的属性都是在xxxxProperties类中封装着；
+- 配置文件能配置什么就可以参照某个功能对应的这个属性类
+
+```
+//从配置文件中获取指定的值和bean的属性进行绑定
+@ConfigurationProperties(prefix = "spring.http") 
+public class HttpProperties {    // .....}
+```
+
+我们去配置文件里面试试前缀，看提示！
+
+![Image](https://mmbiz.qpic.cn/mmbiz_png/uJDAUKrGC7IPEXZtUAUBhnSZvUmrPzbD4hfI8rrZuGnuFRBjKdaR8mvkyuGfHG1IxBPw0vcTP5LoXIJT9davlA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+
+**这就是自动装配的原理！**
+
+
+
+### 精髓
+
+1、SpringBoot启动会加载大量的自动配置类
+
+2、我们看我们需要的功能有没有在SpringBoot默认写好的自动配置类当中；
+
+3、我们再来看这个自动配置类中到底配置了哪些组件；（只要我们要用的组件存在在其中，我们就不需要再手动配置了）
+
+4、给容器中自动配置类添加组件的时候，会从properties类中获取某些属性。我们只需要在配置文件中指定这些属性的值即可；
+
+**xxxxAutoConfigurartion：自动配置类；**给容器中添加组件
+
+**xxxxProperties:封装配置文件中相关属性；**
+
+
+
+### 了解：@Conditional
+
+了解完自动装配的原理后，我们来关注一个细节问题，**自动配置类必须在一定的条件下才能生效；**
+
+**@Conditional派生注解（Spring注解版原生的@Conditional作用）**
+
+作用：必须是@Conditional指定的条件成立，才给容器中添加组件，配置配里面的所有内容才生效；
+
+![Image](https://mmbiz.qpic.cn/mmbiz_png/uJDAUKrGC7IPEXZtUAUBhnSZvUmrPzbDGcJRvdK3PtqHPAWYBBmpe1XBVjQJeiatU4vasEaxckHlOga1BV9RPaw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+
+- **那么多的自动配置类，必须在一定的条件下才能生效；也就是说，我们加载了这么多的配置类，但不是所有的都生效了。**
+  - 我们怎么知道哪些自动配置类生效？
+
+- **我们可以通过启用 debug=true属性；来让控制台打印自动配置报告，这样我们就可以很方便的知道哪些自动配置类生效；**
+
+```
+#开启springboot的调试类
+debug=true
+```
+
+- **Positive matches:（自动配置类启用的：正匹配）**
+
+- **Negative matches:（没有启动，没有匹配成功的自动配置类：负匹配）**
+
+- **Unconditional classes: （没有条件的类）**
+
+【演示：查看输出的日志】
+
+掌握吸收理解原理，即可以不变应万变！
+
+
+
+## 什么是 YAML？
+
+YAML 是一种人类可读的数据序列化语言。它通常用于配置文件。与属性文件相比，如果我们想要在配置文件中添加复杂的属性，YAML 文件就更加结构化，而且更少混淆。可以看出 YAML 具有分层配置数据。
+
+## YAML 配置的优势在哪里 ?
+
+YAML 现在可以算是非常流行的一种配置文件格式了，无论是前端还是后端，都可以见到 YAML 配置。那么 YAML 配置和传统的 properties 配置相比到底有哪些优势呢？
+
+配置有序，在一些特殊的场景下，配置有序很关键
+支持数组，数组中的元素可以是基本数据类型也可以是对象
+简洁
+相比 properties 配置文件，YAML 还有一个缺点，就是不支持 @PropertySource 注解导入自定义的 YAML 配置。
+
+## spring boot 核心配置文件是什么？bootstrap.properties 和 application.properties 有何区别 ?
+
+单纯做 Spring Boot 开发，可能不太容易遇到 bootstrap.properties 配置文件，但是在结合 Spring Cloud 时，这个配置就会经常遇到了，特别是在需要加载一些远程配置文件的时侯。
+
+spring boot 核心的两个配置文件：
+
+bootstrap (. yml 或者 . properties)：boostrap 由父 ApplicationContext 加载的，比 applicaton 优先加载，配置在应用程序上下文的引导阶段生效。一般来说我们在 Spring Cloud Config 或者 Nacos 中会用到它。且 boostrap 里面的属性不能被覆盖；
+application (. yml 或者 . properties)： 由ApplicatonContext 加载，用于 spring boot 项目的自动化配置。
+
+## 比较一下 Spring Security 和 Shiro 各自的优缺点 ?
+
+由于 Spring Boot 官方提供了大量的非常方便的开箱即用的 Starter ，包括 Spring Security 的 Starter ，使得在 Spring Boot 中使用 Spring Security 变得更加容易，甚至只需要添加一个依赖就可以保护所有的接口，所以，如果是 Spring Boot 项目，一般选择 Spring Security 。当然这只是一个建议的组合，单纯从技术上来说，无论怎么组合，都是没有问题的。Shiro 和 Spring Security 相比，主要有如下一些特点：
+
+Spring Security 是一个重量级的安全管理框架；Shiro 则是一个轻量级的安全管理框架
+Spring Security 概念复杂，配置繁琐；Shiro 概念简单、配置简单
+Spring Security 功能强大；Shiro 功能简单
+
+## Spring Boot 中如何解决跨域问题 ?
+
+跨域可以在前端通过 JSONP 来解决，但是 JSONP 只可以发送 GET 请求，无法发送其他类型的请求，在 RESTful 风格的应用中，就显得非常鸡肋，因此我们推荐在后端通过 （CORS，Cross-origin resource sharing） 来解决跨域问题。这种解决方案并非 Spring Boot 特有的，在传统的 SSM 框架中，就可以通过 CORS 来解决跨域问题，只不过之前我们是在 XML 文件中配置 CORS ，现在可以通过实现WebMvcConfigurer接口然后重写addCorsMappings方法解决跨域问题。
+
+
+
+```java
+@Configuration
+public class CorsConfig implements WebMvcConfigurer {
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+            .allowedOrigins("*")
+            .allowCredentials(true)
+            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+            .maxAge(3600);
+    }
+
+}
+
+```
+
+
+项目中前后端分离部署，所以需要解决跨域的问题。
+我们使用cookie存放用户登录的信息，在spring拦截器进行权限控制，当权限不符合时，直接返回给用户固定的json结果。
+当用户登录以后，正常使用；当用户退出登录状态时或者token过期时，由于拦截器和跨域的顺序有问题，出现了跨域的现象。
+我们知道一个http请求，先走filter，到达servlet后才进行拦截器的处理，如果我们把cors放在filter里，就可以优先于权限拦截器执行。
+
+@Configuration
+public class CorsConfig {
+
+```java
+@Configuration
+public class CorsConfig {
+
+    @Bean
+    public CorsFilter corsFilter() {
+        CorsConfiguration corsConfiguration = new CorsConfiguration();
+        corsConfiguration.addAllowedOrigin("*");
+        corsConfiguration.addAllowedHeader("*");
+        corsConfiguration.addAllowedMethod("*");
+        corsConfiguration.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource urlBasedCorsConfigurationSource = new UrlBasedCorsConfigurationSource();
+        urlBasedCorsConfigurationSource.registerCorsConfiguration("/**", corsConfiguration);
+        return new CorsFilter(urlBasedCorsConfigurationSource);
+    }
+
+}
+
+```
+
+## Spring Boot 中的 starter 到底是什么 ?
+
+- 首先，这个 Starter 并非什么新的技术点，基本上还是基于 Spring 已有功能来实现的。
+
+- 首先它提供了一个自动化配置类，一般命名为 XXXAutoConfiguration ，在这个配置类中通过条件注解来决定一个配置是否生效（条件注解就是 Spring 中原本就有的），
+- 然后它还会提供一系列的默认配置，也允许开发者根据实际情况自定义相关配置，然后通过类型安全的属性注入将这些配置属性注入进来，新注入的属性会代替掉默认属性。
+- 正因为如此，很多第三方框架，我们只需要引入依赖就可以直接使用了。当然，开发者也可以自定义 Starter
+  
+
+## Spring Boot 打成的 jar 和普通的 jar 有什么区别 ?
+
+Spring Boot 项目最终打包成的 jar 是可执行 jar ，这种 jar 可以直接通过 java -jar xxx.jar 命令来运行，这种 jar 不可以作为普通的 jar 被其他项目依赖，即使依赖了也无法使用其中的类。
+
+Spring Boot 的 jar 无法被其他项目依赖，主要还是他和普通 jar 的结构不同。普通的 jar 包，解压后直接就是包名，包里就是我们的代码，而 Spring Boot 打包成的可执行 jar 解压后，在 \BOOT-INF\classes 目录下才是我们的代码，因此无法被直接引用。如果非要引用，可以在 pom.xml 文件中增加配置，将 Spring Boot 项目打包成两个 jar ，一个可执行，一个可引用。
+
+
+## 微服务中如何实现 session 共享 ?
+
+在微服务中，一个完整的项目被拆分成多个不相同的独立的服务，各个服务独立部署在不同的服务器上，各自的 session 被从物理空间上隔离开了，但是经常，我们需要在不同微服务之间共享 session ，常见的方案就是 Spring Session + Redis 来实现 session 共享。将所有微服务的 session 统一保存在 Redis 上，当各个微服务对 session 有相关的读写操作时，都去操作 Redis 上的 session 。这样就实现了 session 共享，Spring Session 基于 Spring 中的代理过滤器实现，使得 session 的同步操作对开发人员而言是透明的，非常简便。
+
+
+## Spring Boot 中如何实现定时任务 ?
+
+定时任务也是一个常见的需求，Spring Boot 中对于定时任务的支持主要还是来自 Spring 框架。
+
+在 Spring Boot 中使用定时任务主要有两种不同的方式，一个就是使用 Spring 中的 @Scheduled 注解，另一个则是使用第三方框架 Quartz。
+
+使用 Spring 中的 @Scheduled 的方式主要通过 @Scheduled 注解来实现。
+
+使用 Quartz ，则按照 Quartz 的方式，定义 Job 和 Trigger 即可。
+
+
+
+
+
+
+
+
+
+
 # 问题
 
 ## @RestController

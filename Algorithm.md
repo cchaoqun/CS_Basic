@@ -149,52 +149,50 @@ public class mergeSort {
 
 ```java
 public class heapSort {
-    public int[] sortArray(int[] nums){
+    public int[] sortArray(int[] nums) {
         int len = nums.length;
-        heapify(nums);
+        int size = len-1;
+        heapify(nums, size);
         //不断把最大的元素交换到末尾
-        for(int i=len-1; i>=0; ){
+        for(int i=len-1; i>=0; i--){
             // 堆顶的元素交换到了最后一个位置, 这个元素是当前堆中最大的
-            swap(nums, i, 0);
-            i--;
+            swap(nums, 0, i);
+            size--;
             // 因为本来在最后一个位置的元素交换到了堆顶, 需要下沉到合适的位置
             // 并且已经找到了一个最大的元素, 堆中元素减一,
-            percolateDowm(nums, 0, i);
+            percolateDown(nums, 0, size);
         }
         return nums;
     }
 
-    private void heapify(int[] nums){
-        // 从 (nums.length-1)/2开始下沉即可
-        // 因为最后一个元素对应的父节点在数组中的下标 就是 (nums.length-1-1)/2
-        for(int i=(nums.length-1-1)/2; i>=0; i--){
-            percolateDowm(nums, i, nums.length-1);
+    private void heapify(int[] nums, int size){
+        for(int i=(size-1)/2; i>=0; i--){
+            percolateDown(nums, i, size);
         }
     }
 
     /**
      *
      * @param nums 堆对应的数组
-     * @param k     当前需要下沉的数组
-     * @param end   当前堆的最后一个元素在数组中对应的下标
+     * @param index    当前需要下沉的数组
+     * @param size   当前堆的最后一个元素在数组中对应的下标
      */
-    private void percolateDowm(int[] nums, int k, int end){
+    private void percolateDown(int[] nums, int index, int size){
         // 2*end+1 是k位置对应的左子节点在数组中的下标
-        while(2*k+1<=end){
+        while(index*2+1<=size){
+            int l = index*2+1;
             // 找到左右子节点中较大的那个
-            int left = 2*k+1;
-            if(left+1<=end && nums[left+1]>nums[left]){
-                left++;
+            if(l+1<=size && nums[l+1]>nums[l]){
+                l += 1;
             }
-            if(nums[k]<nums[left]){
-                swap(nums, k, left);
-                k = left;
-            }else{
+            if(nums[index]<nums[l]){
+                swap(nums, index, l);
+                index = l;
+            }else {
                 break;
             }
         }
     }
-
     private void swap(int[] nums, int i, int j){
         int temp = nums[i];
         nums[i] = nums[j];
@@ -747,6 +745,431 @@ private int findMax(int[] num, int target){
 
 
 
+
+
+## 子序列
+
+### 115. 不同的子序列
+
+[115. 不同的子序列](https://leetcode-cn.com/problems/distinct-subsequences/)
+
+- 思路 dp
+  - dp\[i][j] = s[i:] 子序列和 t[j:] 匹配的个数
+  - i = m, s为空串, t[j:] 不可能是空串的子序列, 所有对于任意 0<=j<n dp\[m][j] = 0
+  - j = n t为空串, 对于任意的 0<=i<=m dp\[i][n] = 1
+  - s[i] == t[j] s[i:] 可以选择和 t[j:] 匹配, 也可以用s[i+1:] 和t[j:] 匹配 dp\[i][j] = dp\[i+1][j+1]+dp\[i+1][j] 
+  - s[i] != t[j] s[i:] 不能跟 t[j:] 匹配, 所以 只能尝试 s[i+1:] 和 t[j:]匹配
+
+![image-20210810173100094](Algorithm.assets/image-20210810173100094.png)
+
+```java
+//DP
+public int numDistinct(String s, String t) {
+    int m = s.length();
+    int n = t.length();
+    if(m<n){
+        return 0;
+    }
+    int[][] dp = new int[m+1][n+1];
+    for(int i=0; i<=m; i++){
+        dp[i][n] = 1;
+    }
+    for(int i=m-1; i>=0; i--){
+        for(int j=n-1; j>=0; j--){
+            if(s.charAt(i)==t.charAt(j)){
+                dp[i][j] = dp[i+1][j+1]+dp[i+1][j];
+            }else{
+                dp[i][j] = dp[i+1][j];
+            }
+        }
+    }
+    return dp[0][0];
+}
+
+
+
+//回溯
+public int numDistinct(String s, String t) {
+    int m = s.length();
+    int n = t.length();
+    if(m<n){
+        return 0;
+    }
+    StringBuffer path = new StringBuffer();
+    int index = 0;
+    int[] res = new int[]{0};
+    backtrack(path, index, s, t, res);
+    return res[0];
+}
+
+private void backtrack(StringBuffer path, int index, String s, String t, int[] res){
+    //收集解
+    if(path.length()==t.length()){
+        //字符串相等
+        if(path.toString().equals(t)){
+            res[0]++;
+        }
+        return;
+    }
+    //超界
+    if(index>=s.length()){
+        return;
+    }
+    //剩余s的字符全部加上也不够t的长度
+    if(s.length()-index<t.length()-path.length()){
+        return;
+    }
+
+    //加
+    path.append(s.charAt(index));
+    backtrack(path, index+1, s, t, res);
+    path.deleteCharAt(path.length()-1);
+
+    //不加
+    backtrack(path, index+1, s, t, res);
+
+}
+
+//recursion+memo
+public int numDistinct(String s, String t) {
+    if (s == null || s.length() == 0) return 0;
+    if (t == null || t.length() == 0) return 1;
+
+    return dfs(s, t, 0, 0, new Integer[s.length()][t.length()]);
+}
+// 查找 s从i开始, t从j开始 s中子序列等于t的个数
+private int dfs(String s, String t, int i, int j, Integer[][] dp){
+    if(j==t.length()) return 1;
+    if(i==s.length()) return 0;
+    //之前算过 直接返回
+    if(dp[i][j]!=null) return dp[i][j];
+    int match = 0, notMatch = 0;
+    //当前开始的字符匹配
+    if(s.charAt(i)==t.charAt(j)){
+        match = dfs(s,t,i+1, j+1, dp) + dfs(s,t,i+1,j,dp);
+    }else{
+        //当前开始的字符不匹配
+        notMatch = dfs(s,t,i+1, j, dp);
+    }
+    //两种情况相加为总数
+    dp[i][j] = match+notMatch;
+    return dp[i][j];
+
+}
+```
+
+
+
+## 股票问题
+
+https://leetcode-cn.com/circle/article/qiAgHn/
+
+### 121. 买卖股票的最佳时机
+
+[121. 买卖股票的最佳时机](https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock/)
+
+![image-20210810175049138](Algorithm.assets/image-20210810175049138.png)
+
+```java
+public int maxProfit(int[] prices) {
+    int preMin = prices[0];
+    int maxRes = 0;
+    for(int i=1; i<prices.length; i++){
+        maxRes = Math.max(maxRes, prices[i]-preMin);
+        preMin = Math.min(preMin, prices[i]);
+    }
+    return maxRes;
+}
+
+public int maxProfit(int[] prices) {
+    if (prices == null || prices.length == 0) {
+        return 0;
+    }
+    int length = prices.length;
+    int[][] dp = new int[length][2];
+   	dp[0][0] = 0;
+    dp[0][1] = -prices[0];
+    for(int i=1; i<length; i++){
+        dp[i][0] = Math.max(dp[i-1][0], dp[i-1][1]+prices[i]);
+        dp[i][1] = Math.max(dp[i-1][1], -prices[i]);
+    }
+    return dp[length-1][0];
+}
+
+```
+
+
+
+### 122. 买卖股票的最佳时机 II
+
+[122. 买卖股票的最佳时机 II](https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock-ii/)
+
+![image-20210810175137325](Algorithm.assets/image-20210810175137325.png)
+
+```java
+public int maxProfit(int[] prices) {
+    if (prices == null || prices.length == 0) {
+        return 0;
+    }
+    int len = prices.length;
+    int[][] dp = new int[len][2];
+    dp[0][0] = 0;
+    dp[0][1] = -prices[0];
+    for(int i=1; i<len; i++){
+        dp[i][0] = Math.max(dp[i-1][0], dp[i-1][1]+prices[i]);
+        dp[i][1] = Math.max(dp[i-1][1], dp[i-1][0]-prices[i]);
+    }
+    return dp[len-1][0];
+}
+
+public int maxProfit(int[] prices) {
+    if (prices == null || prices.length == 0) {
+        return 0;
+    }
+    int len = prices.length;
+    int max = 0;
+    for(int i=1; i<len; i++){
+        //加上所有递增的连续序列差
+        max += prices[i]-prices[i-1]>0?prices[i]-prices[i-1]:0;
+    }
+    return max;
+}
+```
+
+
+
+### 123. 买卖股票的最佳时机 III
+
+[123. 买卖股票的最佳时机 III](https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock-iii/)
+
+![image-20210810180342143](Algorithm.assets/image-20210810180342143.png)
+
+
+
+```java
+public int maxProfit(int[] prices) {
+    if (prices == null || prices.length <=1) {
+        return 0;
+    }
+    int len = prices.length;
+    //					len天, 3中可能的交易次数 2种可能的每天结束时的状态
+    int[][][] dp = new int[len][3][2];
+    dp[0][1][0] = 0; 
+    dp[0][1][1] = -prices[0];
+    //最多完成2次比一定必须完成2次
+    dp[0][2][0] = 0; 
+    dp[0][2][1] = -prices[0];     
+    for(int i=1; i<len; i++){
+        dp[i][1][0] = Math.max(dp[i-1][1][0], dp[i-1][1][1]+prices[i]);
+        dp[i][1][1] = Math.max(dp[i-1][1][1], dp[i-1][0][0]-prices[i]);
+        dp[i][2][0] = Math.max(dp[i-1][2][0], dp[i-1][2][1]+prices[i]);
+        dp[i][2][1] = Math.max(dp[i-1][2][1], dp[i-1][1][0]-prices[i]);
+    }
+    return dp[len-1][2][0];
+}
+
+//二维dp
+
+//状态定义：dp[i][j][k] 表示在 [0, i] 区间里（状态具有前缀性质），交易进行了 j 次，
+// 并且状态为 k 时我们拥有的现金数。其中 j 和 k 的含义如下：
+//j = 0 表示没有交易发生；
+//j = 1 表示此时已经发生了 1 次买入股票的行为；
+//j = 2 表示此时已经发生了 2 次买入股票的行为。
+//即我们 人为规定 记录一次交易产生是在 买入股票 的时候。
+//k = 0 表示当前不持股；
+//k = 1 表示当前持股。
+// 初始化
+// dp[0][0][0] = 0 第一天不持股未发生交易
+// dp[0][0][1] = 0 第一天未发生交易但是持股,这不可能设为0
+// dp[0][1][0] = 0 发生了一次交易,但是不持股 不可能
+// dp[0][1][1] = -price[0] 发生了一次交易,并且持股, 持有的现金数为第一天股价的相反数
+// dp[0][2][0] = 0 发生了两次交易,但是不持股,不可能
+// dp[0][2][1] = Integer.MIN_VALUE 发生了两次交易,并且持股
+//二维dp
+public int maxProfit(int[] prices){
+    int[][] dp = new int[3][2];
+    //第一天结束持股,发生一次交易即第一天买入
+    dp[1][1] = -prices[0];
+    dp[2][1] = Integer.MIN_VALUE;
+    for(int i=1; i<prices.length; ++i){
+        //i天结束发生1次交易,持股
+        int dp11 = Math.max(dp[1][1], -prices[i]);
+        //i天结束发生1次交易,不持股
+        int dp10 = Math.max(dp[1][0], dp[1][1]+prices[i]);
+        //i天结束发生2次交易,持股
+        int dp21 = Math.max(dp[2][1], dp[1][0]-prices[i]);
+        //i天结束发生2次交易,不持股
+        int dp20 = Math.max(dp[2][0], dp[2][1]+prices[i]);
+        dp[1][1] = dp11;
+        dp[1][0] = dp10;
+        dp[2][1] = dp21;
+        dp[2][0] = dp20;
+    }
+    return Math.max(dp[1][0], dp[2][0]);
+}
+```
+
+
+
+### 188. 买卖股票的最佳时机 IV
+
+[188. 买卖股票的最佳时机 IV](https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock-iv/)
+
+![image-20210810181851448](Algorithm.assets/image-20210810181851448.png)
+
+
+
+```java
+//3维dp
+public int maxProfit(int k, int[] prices) {
+    if (prices == null || prices.length == 0) {
+        return 0;
+    }
+    int length = prices.length;
+    //因为一天不能同时买入卖出, 所以一次交易最少需要两天, 超出天数的一半等于没有限制
+    if (k >= length / 2) {
+        return maxProfit(prices);
+    }
+    int[][][] dp = new int[length][k + 1][2];
+    for (int i = 1; i <= k; i++) {
+        dp[0][i][0] = 0;
+        dp[0][i][1] = -prices[0];
+    }
+    for (int i = 1; i < length; i++) {
+        for (int j = k; j > 0; j--) {
+            dp[i][j][0] = Math.max(dp[i - 1][j][0], dp[i - 1][j][1] + prices[i]);
+            dp[i][j][1] = Math.max(dp[i - 1][j][1], dp[i - 1][j - 1][0] - prices[i]);
+        }
+    }
+    return dp[length - 1][k][0];
+}
+
+
+
+//i只与i-1天有关 二维dp
+public int maxProfit(int k, int[] prices) {
+    if (prices == null || prices.length == 0) {
+        return 0;
+    }
+    int length = prices.length;
+    //因为一天不能同时买入卖出, 所以一次交易最少需要两天, 超出天数的一半等于没有限制
+    if (k >= length / 2) {
+        return maxProfit(prices);
+    }
+    int[][] dp = new int[k + 1][2];
+    for (int i = 1; i <= k; i++) {
+        dp[i][1] = -prices[0];
+    }
+    for (int i = 1; i < length; i++) {
+        for (int j = k; j > 0; j--) {
+            dp[j][0] = Math.max(dp[j][0], dp[j][1]+prices[i]);
+            dp[j][1] = Math.max(dp[j][1], dp[j-1][0]-prices[i]);
+        }
+    }
+    return dp[k][0];
+}
+
+//共享的k无限制的解法
+public int maxProfit(int[] prices) {
+    if (prices == null || prices.length == 0) {
+        return 0;
+    }
+    int len = prices.length;
+    int max = 0;
+    for(int i=1; i<len; i++){
+        //加上所有递增的连续序列差
+        max += prices[i]-prices[i-1]>0?prices[i]-prices[i-1]:0;
+    }
+    return max;
+}
+
+```
+
+
+
+### 309. 最佳买卖股票时机含冷冻期
+
+[309. 最佳买卖股票时机含冷冻期](https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock-with-cooldown/)
+
+![image-20210810184315714](Algorithm.assets/image-20210810184315714.png)
+
+```java
+public int maxProfit(int[] prices) {
+    if(prices==null || prices.length<=1){
+        return 0;
+    }
+    int len = prices.length;
+    int[][] dp = new int[len][2];
+    dp[0][1] = -prices[0];
+    dp[0][0] = 0;
+    for(int i=1; i<len; i++){
+        dp[i][0] = Math.max(dp[i-1][0], dp[i-1][1]+prices[i]);
+        //                              i-2天不能买入否则i-1天卖出i天就不能买入
+        dp[i][1] = Math.max(dp[i-1][1], (i>=2?dp[i-2][0]:0)-prices[i]);
+    }
+    return dp[len-1][0];
+}
+```
+
+
+
+### 714. 买卖股票的最佳时机含手续费
+
+[714. 买卖股票的最佳时机含手续费](https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock-with-transaction-fee/)
+
+![image-20210810185225140](Algorithm.assets/image-20210810185225140.png)
+
+
+
+```java
+public int maxProfit(int[] prices, int fee) {
+    if(prices==null || prices.length<=1){
+        return 0;
+    }
+    int len = prices.length;
+    int[][] dp = new int[len][2];
+    dp[0][1] = -prices[0];
+    dp[0][0] = 0;
+    for(int i=1; i<len; i++){
+        dp[i][0] = Math.max(dp[i-1][0], dp[i-1][1]+prices[i]-fee);
+        dp[i][1] = Math.max(dp[i-1][1], dp[i-1][0]-prices[i]);
+    }
+    return dp[len-1][0];
+}
+
+
+public int maxProfit(int[] prices, int fee) {
+    int n = prices.length;
+    int buy = prices[0] + fee;
+    int profit = 0;
+    for (int i = 1; i < n; ++i) {
+        if (prices[i] + fee < buy) {
+            buy = prices[i] + fee;
+        } else if (prices[i] > buy) {
+            profit += prices[i] - buy;
+            buy = prices[i];
+        }
+    }
+    return profit;
+}
+
+
+```
+
+![image-20210810190417741](Algorithm.assets/image-20210810190417741.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## 矩阵路径问题
 
 ### 64. 最小路径和
@@ -892,6 +1315,419 @@ public boolean matches(String s, String p, int i, int j) {
 }
 
 ```
+
+
+
+## 编辑距离
+
+### 72. 编辑距离
+
+[72. 编辑距离](https://leetcode-cn.com/problems/edit-distance/)
+
+
+
+![image-20210811165239229](Algorithm.assets/image-20210811165239229.png)
+
+
+
+```java
+//二维dp
+public int minDistance(String word1, String word2) {
+    /**
+        dp[i][j] word1.subtring(0,i) 与 word2.substring(0,j)的编辑距离
+
+        word1.charAt(i) != word2.charAt(j)
+            dp[i][j] = Math.min(Math.min(dp[i-1][j], dp[i][j-1]), dp[i-1][j-1])+1
+        word1.charAt(i) == word2.charAt(j)
+            dp[i][j] = Math.min(Math.min(dp[i-1][j]+1, dp[i][j-1])+1, dp[i-1][j-1])
+
+        dp[0][0] = 0;
+        dp[0][j] = j
+        dp[i][0] = i
+
+         */
+    int len1 = word1.length();
+    int len2 = word2.length();
+    int[][] dp = new int[len1+1][len2+1];
+    for(int j=1; j<=len2; j++){
+        dp[0][j] = j;
+    }
+    for(int i=1; i<=len1; i++){
+        dp[i][0] = i;
+    }
+    for(int i=1; i<=len1; i++){
+        for(int j=1; j<=len2; j++){
+            if(word1.charAt(i-1)==word2.charAt(j-1)){
+                dp[i][j] = Math.min(Math.min(dp[i-1][j]+1, dp[i][j-1]+1), dp[i-1][j-1]);
+            }else{
+                dp[i][j] = Math.min(dp[i-1][j], Math.min(dp[i][j-1],dp[i-1][j-1] ))+1;
+            }
+        }
+    }
+    return dp[len1][len2];
+
+
+}
+
+//一维dp
+public int minDistance(String word1, String word2) {
+    /**
+        dp[i][j] word1.subtring(0,i) 与 word2.substring(0,j)的编辑距离
+
+        word1.charAt(i) != word2.charAt(j)
+            dp[i][j] = Math.min(Math.min(dp[i-1][j], dp[i][j-1]), dp[i-1][j-1])+1
+        word1.charAt(i) == word2.charAt(j)
+            dp[i][j] = Math.min(Math.min(dp[i-1][j]+1, dp[i][j-1])+1, dp[i-1][j-1])
+
+        dp[0][0] = 0;
+        dp[0][j] = j
+        dp[i][0] = i
+
+         */
+    int len1 = word1.length();
+    int len2 = word2.length();
+    // 一维 dp
+    int[] dp = new int[len2+1];
+    // 初始化word1=="" word2的不同长度对应的编辑距离
+    for(int i=0; i<=len2; i++){
+        dp[i] = i;
+    }
+    // i表示word1的长度
+    for(int i=1; i<=len1; i++){
+        //等于原来的dp[i-1][j-1]
+        int lu = dp[0];
+        // 初始化word2.length()==0的编辑距离
+        dp[0] = i;
+        for(int j=1; j<=len2; j++){
+            // 保存当前的dp[j] 这是dp[j+1]对应的dp[i-1][j-1]
+            int temp = dp[j];
+            if(word1.charAt(i-1)!=word2.charAt(j-1)){
+                dp[j] = Math.min(Math.min(dp[j], dp[j-1]), lu)+1;
+            }else{
+                dp[j] = Math.min(Math.min(dp[j]+1, dp[j-1]+1), lu);
+            }
+            lu = temp;
+        }
+    }
+    return dp[len2];
+
+}
+```
+
+
+
+
+
+
+
+### NC35 最小编辑代价
+
+https://www.nowcoder.com/practice/05fed41805ae4394ab6607d0d745c8e4
+
+
+
+![image-20210811162508512](Algorithm.assets/image-20210811162508512.png)
+
+```java
+/**
+     * min edit cost
+     * @param str1 string字符串 the string
+     * @param str2 string字符串 the string
+     * @param ic int整型 insert cost
+     * @param dc int整型 delete cost
+     * @param rc int整型 replace cost
+     * @return int整型
+     */
+public int minEditCost (String str1, String str2, int ic, int dc, int rc) {
+    // write code here
+    /**
+        dp[i][j] str1[:i] str2[:j] 最小编辑代价
+        */
+    int m = str1.length();
+    int n = str2.length();
+    int[][] dp = new int[m+1][n+1];
+
+    dp[0][0] = 0;
+    //初始化第一行 ic*i
+    //将str1编辑成str2 不能反过来
+    for(int i=1; i<=n; i++){
+        dp[0][i] = ic*i;
+    }
+    //初始化第一列
+    for(int j=1; j<=m; j++){
+        dp[j][0] = dc*j;
+    }
+    for(int i=1; i<=m; i++){
+        for(int j=1; j<=n; j++){
+            if(str1.charAt(i-1)==str2.charAt(j-1)){
+                dp[i][j] = dp[i-1][j-1];
+            }else{
+                //
+                int insert1 = dp[i][j-1]+ic;
+                int delete1 = dp[i-1][j]+dc;
+                int replace = dp[i-1][j-1]+rc;
+                dp[i][j] = Math.min(insert1, delete1);
+                dp[i][j]  = Math.min(dp[i][j],replace);
+
+            }
+        }
+    }
+    return dp[m][n];
+
+}
+```
+
+
+
+
+
+
+
+
+
+# IP地址 路径 注释
+
+## 71. 简化路径
+
+[71. 简化路径](https://leetcode-cn.com/problems/simplify-path/)
+
+- 分割字符串之后根据每种情况进行判定
+- `.`和`""`就不用管，直接跳过
+  `..`就代表着返回上一级，即弹出队尾元素（要注意判空）
+- 其他情况直接压入队列就行。
+
+![image-20210811183838262](Algorithm.assets/image-20210811183838262.png)
+
+```java
+public String simplifyPath(String path) {
+    Deque<String> dq = new ArrayDeque<>();
+    String[] items = path.split("/");
+    for(String cur : items){
+        if(cur.equals(".") || cur.equals("")){
+            continue;
+        }
+        else if(cur.equals("..")){
+            if(!dq.isEmpty()){
+                dq.pollLast();
+            }
+        }else{
+            dq.addLast(cur);
+        }
+    }
+    StringBuffer sb = new StringBuffer();
+    while(!dq.isEmpty()){
+        sb.append("/");
+        sb.append(dq.pollFirst());
+    }
+    return sb.toString().equals("")?"/":sb.toString();
+}
+```
+
+
+
+## 93. 复原 IP 地址
+
+[93. 复原 IP 地址](https://leetcode-cn.com/problems/restore-ip-addresses/)
+
+![image-20210811184400414](Algorithm.assets/image-20210811184400414.png)
+
+```java
+public List<String> restoreIpAddresses(String s) {
+    List<String> res = new ArrayList<>();
+    List<String> path = new ArrayList<>();
+    backtrack(res, path, 0, s);
+    return res;
+}
+
+private void backtrack(List<String> res, List<String> path, int start, String s){
+    if(start==s.length() && path.size()==4){
+        // res.add(String.join(".",path));
+        // return ;
+        StringBuffer sb = new StringBuffer();
+        for(String str : path){
+            sb.append(str);
+            sb.append(".");
+        }
+        sb.deleteCharAt(sb.length()-1);
+        res.add(sb.toString());
+        return;
+    }
+    // 剪枝
+    // 剩余字符数量 s.length()-1-start+1 = s.length()-start
+    // 剩余需要的字符串的数量 4-path.size()
+    // s.length()-start <4-path.size() 
+    // s.length()-start > 3*(4-path.size())
+    if(s.length()-start <4-path.size() || s.length()-start > 3*(4-path.size())){
+        return;
+    }
+
+    // 处理一个字符
+    if(start+1<=s.length()){
+        path.add(s.substring(start, start+1));
+        backtrack(res, path, start+1, s);
+        path.remove(path.size()-1);
+    }
+    // 处理两个字符
+    if(s.charAt(start)!='0' && start+2<=s.length()){
+        path.add(s.substring(start, start+2));
+        backtrack(res, path, start+2, s);
+        path.remove(path.size()-1);
+    }
+    // 处理三个字符
+    if(s.charAt(start)!='0' && start+3<=s.length()){
+        String cur = s.substring(start, start+3);
+        if(Integer.parseInt(cur)<=255){
+            path.add(s.substring(start, start+3));
+            backtrack(res, path, start+3, s);
+            path.remove(path.size()-1);
+        }
+
+    }
+}
+
+public List<String> restoreIpAddresses(String s) {
+    List<String> res = new ArrayList<>();
+    List<String> path = new ArrayList<>();
+    int start = 0;
+    backtrack(res, path, start, s);
+    return res;
+}
+
+private void backtrack(List<String> res,List<String> path ,int start ,String s){
+    //base case
+    if(start==s.length()){
+        if(path.size()==4){
+            StringBuffer sb  = new StringBuffer();
+            for(int i=0; i<path.size(); i++){
+                sb.append(path.get(i));
+                sb.append(".");
+            }
+            sb.deleteCharAt(sb.length()-1);
+            res.add(sb.toString());
+        }
+        return ;
+    }
+
+    /** 剪枝
+        s.length()-start > (4-path.size())*3 || (4-path.size())>s.length()-start
+        */
+    if(s.length()-start > (4-path.size())*3 || (4-path.size())>s.length()-start){
+        return;
+    }
+    //1位
+    path.add(s.substring(start,start+1));
+    backtrack(res,path,start+1, s);
+    path.remove(path.size()-1);
+
+    //2位
+    if(s.charAt(start)!='0' && start+1<s.length()){
+        path.add(s.substring(start,start+2));
+        backtrack(res,path,start+2, s);
+        path.remove(path.size()-1);
+    }
+
+    //3位
+    if(s.charAt(start)!='0' && start+2<s.length()){
+        String cur = s.substring(start, start+3);
+        if(cur.compareTo("255")>0){
+            return;
+        }
+        path.add(s.substring(start,start+3));
+        backtrack(res,path,start+3, s);
+        path.remove(path.size()-1);
+    }
+
+}
+```
+
+
+
+
+
+## 468. 验证IP地址
+
+[468. 验证IP地址](https://leetcode-cn.com/problems/validate-ip-address/)
+
+![image-20210811190825423](Algorithm.assets/image-20210811190825423.png)
+
+
+
+```java
+public String validIPAddress(String IP) {
+    if(isIPV4(IP)){
+        return "IPv4";
+    }else if(isIPV6(IP)){
+        return "IPv6";
+    }else{
+        return "Neither";
+    }
+}
+
+private boolean isIPV4(String str){
+    String[] ips = str.split("\\.",-1);
+    if(ips.length!=4){
+        return false;
+    }
+    for(String ip : ips){
+        //长度为0 >3 或者第一位为0 并且长度>1
+        if(ip.length()==0 || ip.length()>3 || (ip.charAt(0)=='0' && ip.length()>1)){
+            return false;
+        }
+        //必须是数字
+        for(int i=0; i<ip.length(); i++){
+            if(ip.charAt(i)<'0' || ip.charAt(i)>'9'){
+                return false;
+            }
+        }
+        //必须小于等于255
+        if(ip.compareTo("255")>0){
+            return false;
+        }
+    }
+    return true;
+}
+
+private boolean isIPV6(String str){
+    String[] ips = str.split(":",-1);
+    //保证长度=8
+    if(ips.length!=8){
+        return false;
+    }
+    for(String ip : ips){
+        //每个部分必须为1-4
+        if(ip.length()==0 || ip.length()>4){
+            return false;
+        }
+        //每次字符必须数字或者a-f的字母
+        for(int i=0; i<ip.length(); i++){
+            char cur = ip.charAt(i);
+            if((!Character.isDigit(cur)) && (Character.toLowerCase(cur)<'a'||Character.toLowerCase(cur)>'f')){
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+```
+
+
+
+
+
+## [722. 删除注释
+
+[722. 删除注释](https://leetcode-cn.com/problems/remove-comments/) 
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1537,6 +2373,181 @@ private ListNode reverse(ListNode node, int n){
 
 
 
+## 链表删除
+
+### 83. 删除排序链表中的重复元素
+
+[83. 删除排序链表中的重复元素](https://leetcode-cn.com/problems/remove-duplicates-from-sorted-list/)
+
+![image-20210811173437401](Algorithm.assets/image-20210811173437401.png)
+
+
+
+```java
+public ListNode deleteDuplicates(ListNode head) {
+    if(head==null){
+        return head;
+    }
+    ListNode cur = head;
+    while(cur.next!=null){
+        if(cur.next.val==cur.val){
+            cur.next = cur.next.next;
+        }else{
+            cur = cur.next;
+        }
+    }
+    return head;
+}
+```
+
+
+
+### 82. 删除排序链表中的重复元素 II
+
+[82. 删除排序链表中的重复元素 II](https://leetcode-cn.com/problems/remove-duplicates-from-sorted-list-ii/)
+
+![image-20210811174253395](Algorithm.assets/image-20210811174253395.png)
+
+```java
+public ListNode deleteDuplicates(ListNode head) {
+    if(head==null){
+        return null;
+    }
+    ListNode dummy = new ListNode(0), cur = dummy;
+    dummy.next = head;
+    while(cur.next!=null && cur.next.next!=null){
+        if(cur.next.val == cur.next.next.val){
+            int val = cur.next.val;
+            while(cur.next!=null && cur.next.val==val){
+                cur.next = cur.next.next;
+            }
+        }else{
+            cur = cur.next;
+        }
+
+    }
+    return dummy.next;
+}
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+### 面试题 02.01. 移除重复节点
+
+[面试题 02.01. 移除重复节点](https://leetcode-cn.com/problems/remove-duplicate-node-lcci/)
+
+
+
+![image-20210811172259054](Algorithm.assets/image-20210811172259054.png)
+
+```java
+public ListNode removeDuplicateNodes(ListNode head) {
+    Set<Integer> set = new HashSet<>();
+    //哑结点
+    ListNode dummy = new ListNode(0);
+    dummy.next = head;
+    ListNode cur = dummy;
+    //总是判断下一个这样可以在前一个结点删除重复的结点
+    while(cur.next!=null){
+        if(set.contains(cur.next.val)){
+            cur.next = cur.next.next;
+        }else{
+            set.add(cur.next.val);
+            cur = cur.next;
+        }
+    }
+    return dummy.next;
+}
+
+//不允许额外空间 时间换空间
+public ListNode removeDuplicateNodes(ListNode head) {
+    Set<Integer> set = new HashSet<>();
+    //哑结点
+    ListNode dummy = new ListNode(0);
+    dummy.next = head;
+    ListNode cur = head;
+    //总是判断下一个这样可以在前一个结点删除重复的结点
+    while(cur!=null){
+        //对每个结点遍历后面所有的结点, 存在重复就删除
+        ListNode temp = cur;
+        while(temp.next!=null){
+            if(temp.next.val==cur.val){
+                temp.next = temp.next.next;
+            }else{
+                temp = temp.next;
+            }
+        }
+        cur = cur.next;
+    }
+    return dummy.next;
+}
+//位运算
+public ListNode removeDuplicateNodes(ListNode head) {
+    int[] bits = new int[20000/32+1];
+    ListNode cur = head;
+    while(cur!=null && cur.next!=null){
+        //当前位置确定不重复, 将对应的1移动到数组对应位置的对应bit上
+        bits[cur.val/32] |= (1<<(cur.val%32));
+        //判断下一个位置是否重复, 对应的1 按位与后结果不等于0 说明将要移到的位置上有1 重复
+        if((bits[cur.next.val/32] & (1<<(cur.next.val%32))) !=0){
+            cur.next = cur.next.next;
+        }else{
+            cur = cur.next;
+        }
+    }
+    return head;
+}
+
+```
+
+
+
+
+
+### 剑指 Offer II 021. 删除链表的倒数第 n 个结点
+
+[剑指 Offer II 021. 删除链表的倒数第 n 个结点](https://leetcode-cn.com/problems/SLwz0R/)
+
+![image-20210811170726899](Algorithm.assets/image-20210811170726899.png)
+
+
+
+```java
+public ListNode removeNthFromEnd(ListNode head, int n) {
+    ListNode dummy = new ListNode(0), slow = dummy, fast = head;
+    dummy.next = head;
+    //快指针先走n步
+    while(n>0){
+        fast = fast.next;
+        n--;
+    }
+    //慢指针从dummy开始走, 这样快指针=null 慢指针刚好是删除结点的前一个
+    //因为慢指针从head前一个开始走
+    while(fast!=null){
+        fast = fast.next;
+        slow = slow.next;
+    }
+    //删除倒数第n个结点
+    slow.next = slow.next.next;
+    return dummy.next;
+
+}
+```
+
+
+
+
+
 
 
 
@@ -2097,6 +3108,52 @@ private void swap(TreeNode x, TreeNode y){
 
 
 ## 路径和问题
+
+### 剑指 Offer 34. 二叉树中和为某一值的路径
+
+[剑指 Offer 34. 二叉树中和为某一值的路径](https://leetcode-cn.com/problems/er-cha-shu-zhong-he-wei-mou-yi-zhi-de-lu-jing-lcof/)
+
+- 思路
+  - dfs遍历每条路径
+  - 到达叶子结点, 检查路径的和是否和target相等, 相等就加入
+
+```java
+public List<List<Integer>> pathSum(TreeNode root, int target) {
+    List<List<Integer>> res = new ArrayList<>();
+    List<Integer> path = new ArrayList<>();
+    int sum = 0;
+    dfs(root, res, path, sum, target);
+    return res;
+}
+
+private void dfs(TreeNode node, List<List<Integer>> res, List<Integer> path, int sum, int target){
+    if(node==null){
+        return;
+    }
+    path.add(node.val);
+    sum += node.val;
+    if(node.left==null && node.right==null && sum == target){
+        res.add(new ArrayList<Integer>(path));
+        path.remove(path.size()-1);
+        return;
+    }
+    dfs(node.left, res, path, sum, target);
+    dfs(node.right, res, path, sum, target);
+    path.remove(path.size()-1);
+
+}
+
+
+
+```
+
+
+
+
+
+
+
+
 
 
 
@@ -2667,38 +3724,37 @@ public int[] maxSlidingWindow(int[] nums, int k) {
         窗口个数 len-1-(k-1)+1 = len-k+1
         最后一个窗口的左端下标x len-1-x+1 = k ==> x = len-k
         */
-    int len = nums.length;
-    int l = 0, r = -1, index = 0;
-    int[] winMax = new int[len-k+1];
-    //保存的是元素的下标
-    Deque<Integer> dq = new ArrayDeque<>();
-    //形成窗口
+    int[] res = new int[len-k+1];
+    int index = 0;
+    Deque<Integer> stack = new ArrayDeque<>();
+    int l = 0, r = -1;
+    //形成第一个窗口
     while(r<k-1){
         r++;
-        while(!dq.isEmpty() && nums[dq.peekLast()]<nums[r]){
-            dq.pollLast();
+        //保证单调队列的单调非递增, 队列头保存的是当前窗口的最大值
+        while(!stack.isEmpty() && stack.peekLast()<nums[r]){
+            stack.pollLast();
         }
-        dq.offerLast(r);
+        stack.addLast(nums[r]);
     }
-    winMax[index++] = nums[dq.peekFirst()];
-    while(l<len-k){
-        //删除左边
-        if(nums[l]==nums[dq.peekFirst()]){
-            dq.pollFirst();
+    while(r<len-1){
+        //上一个窗口的最大值
+        res[index++] = stack.peekFirst();
+        //右边添加一个元素
+        r++;
+        while(!stack.isEmpty() && stack.peekLast()<nums[r]){
+            stack.pollLast();
+        }
+        stack.addLast(nums[r]);
+        //左边减少一个 如果删除的刚好是队列头的元素, 队列头也需要出队
+        if(nums[l]==stack.peekFirst()){
+            stack.pollFirst();
         }
         l++;
-        //添加右边
-        r++;
-        //删除队列尾<当前元素
-        while(!dq.isEmpty() && nums[dq.peekLast()]<nums[r]){
-            dq.pollLast();
-        }
-        dq.offerLast(r);
-        //获取当前最大值
-        winMax[index++] = nums[dq.peekFirst()];
     }
-    return winMax;
-
+    //最后一个窗口的最大值
+    res[index++] = stack.peekFirst();
+    return res;
 
 }
 ```
@@ -2815,7 +3871,7 @@ private void check(int l){
 
 
 
-## [ ]480. 滑动窗口中位数
+## [ x ]480. 滑动窗口中位数
 
 
 
@@ -3340,6 +4396,83 @@ public int rand10() {
 
 # 数组
 
+## 字符串前缀
+
+### 14. 最长公共前缀
+
+[14. 最长公共前缀](https://leetcode-cn.com/problems/longest-common-prefix/)
+
+![image-20210811175733297](Algorithm.assets/image-20210811175733297.png)
+
+```java
+public String longestCommonPrefix(String[] strs) {
+    if(strs==null || strs.length==0){
+        return "";
+    }
+    int len = strs.length;
+    int[] index = new int[len];
+    StringBuffer sb = new StringBuffer();
+    for(int i=0;i<=200;i++){
+        if(index[0]>=strs[0].length()){
+            return sb.toString();
+        }
+        char cur = strs[0].charAt(index[0]);
+        for(int j=0; j<len; j++){
+            if(index[j]>=strs[j].length()){
+                return sb.toString();
+            }
+            if(strs[j].charAt(index[j])!=cur){
+                return sb.toString();
+            }
+            index[j]++;
+        }
+        sb.append(cur);
+    }
+    return sb.toString();
+}
+//二分查找
+public String longestCommonPrefix(String[] strs) {
+    if (strs == null || strs.length == 0) {
+        return "";
+    }
+    int minLength = Integer.MAX_VALUE;
+    for (String str : strs) {
+        minLength = Math.min(minLength, str.length());
+    }
+    int low = 0, high = minLength;
+    while (low < high) {
+        int mid = (high - low + 1) / 2 + low;
+        //查找所有的字符串strs[i][:mid) 都是公共前缀
+        if (isCommonPrefix(strs, mid)) {
+            low = mid;
+        } else {
+            high = mid - 1;
+        }
+    }
+    return strs[0].substring(0, low);
+}
+    //判断所有的字符串是否到len长度都有公共的len长度的前缀
+public boolean isCommonPrefix(String[] strs, int length) {
+    String str0 = strs[0].substring(0, length);
+    int count = strs.length;
+    for (int i = 1; i < count; i++) {
+        String str = strs[i];
+        for (int j = 0; j < length; j++) {
+            if (str0.charAt(j) != str.charAt(j)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+
+```
+
+
+
+
+
 ## 数组中缺失, 重复(原地哈希)
 
 ### 41. 缺失的第一个正数
@@ -3475,6 +4608,18 @@ private void swap(int[] nums, int index1, int index2) {
 
 
 # 实现数据结构
+
+## LRU
+
+
+
+
+
+
+
+
+
+
 
 ## 232. 用栈实现队列
 

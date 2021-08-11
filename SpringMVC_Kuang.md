@@ -1,4 +1,328 @@
-# 问题记录
+# 总结
+
+https://blog.csdn.net/Number_oneEngineer/article/details/82775419?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522162864758316780261927546%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=162864758316780261927546&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~top_positive~default-1-82775419.pc_search_result_control_group&utm_term=SpringMVC&spm=1018.2226.3001.4187
+
+
+
+## 为什么要使用SpringMVC？
+
+很多应用程序的问题在于处理业务数据的对象和显示业务数据的视图之间存在紧密耦合，通常，更新业务对象的命令都是从视图本身发起的，使视图对任何业务对象更改都有高度敏感性。而且，当多个视图依赖于同一个业务对象时是没有灵活性的。
+
+SpringMVC是一种基于Java，实现了Web MVC设计模式，请求驱动类型的轻量级Web框架，即使用了MVC架构模式的思想，将Web层进行职责解耦。基于请求驱动指的就是使用请求-响应模型，框架的目的就是帮助我们简化开发，SpringMVC也是要简化我们日常Web开发。
+
+## MVC设计模式
+
+MVC设计模式的任务是将包含业务数据的模块与显示模块的视图解耦。这是怎样发生的？在模型和视图之间引入重定向层可以解决问题。此重定向层是控制器，控制器将接收请求，执行更新模型的操作，然后通知视图关于模型更改的消息
+
+![image-20210811111957005](SpringMVC_Kuang.assets/image-20210811111957005.png)
+
+## SpringMVC的核心架构
+
+![image-20210811104455902](SpringMVC_Kuang.assets/image-20210811104455902.png)
+
+
+
+## 具体流程：
+
+- （1）用户发送请求至前端控制器DispatcherServlet；
+- （2）DispatcherServlet收到请求后，调用HandlerMapping处理器映射器，请求获取Handler；
+- （3）处理器映射器根据请求url找到具体的处理器Handler，生成处理器对象及处理器拦截器(如果有则生成)，一并返回给DispatcherServlet；
+- （4）DispatcherServlet 调用 HandlerAdapter处理器适配器，请求执行Handler；
+- （5）HandlerAdapter 经过适配调用 具体处理器进行处理业务逻辑；
+- （6）Handler执行完成返回ModelAndView；
+- （7）HandlerAdapter将Handler执行结果ModelAndView返回给DispatcherServlet；
+- （8）DispatcherServlet将ModelAndView传给ViewResolver视图解析器进行解析；
+- （9）ViewResolver解析后返回具体View；
+- （10）DispatcherServlet对View进行渲染视图（即将模型数据填充至视图中）
+- （11）DispatcherServlet响应用户。
+
+## 各个组件的左右
+
+- 前端控制器 DispatcherServlet：接收请求、响应结果，相当于转发器，有了DispatcherServlet 就减少了其它组件之间的耦合度。
+- 处理器映射器 HandlerMapping：根据请求的URL来查找Handler
+- 处理器适配器 HandlerAdapter：负责执行Handler
+- 处理器 Handler：处理器，需要程序员开发
+- 视图解析器 ViewResolver：进行视图的解析，根据视图逻辑名将ModelAndView解析成真正的视图（view）
+- 视图View：View是一个接口， 它的实现类支持不同的视图类型，如jsp，freemarker，pdf等等
+  
+
+## Springmvc的优点:
+
+（1）可以支持各种视图技术，而不仅仅局限于JSP；
+
+（2）与Spring框架集成（如IoC容器、AOP等）；
+
+（3）清晰的角色分配：前端控制器(dispatcherServlet) ，请求到处理器映射（handlerMapping)，处理器适配器（HandlerAdapter)，视图解析器（ViewResolver）。
+
+（4） 支持各种请求资源的映射策略。
+
+## SpringMVC怎么样设定重定向和转发的？
+
+（1）转发：在返回值前面加"forward:"，譬如"forward:user.do?name=method4"
+
+（2）重定向：在返回值前面加"redirect:"，譬如"redirect:http://www.baidu.com"
+
+
+## SpringMVC常用注解
+
+- @Controller
+  - 负责注册一个bean 到spring 上下文中
+  - 也可以使用@RestController，@RestController注解相当于@ResponseBody ＋ @Controller，表示是表现层，除此之外，一般不用别的注解代替。
+- @RequestMapping
+  -  注解为控制器指定可以处理哪些 URL 请求
+- @RequestBody
+  - 该注解用于读取Request请求的body部分数据，使用系统默认配置的HttpMessageConverter进行解析，然后把相应的数据绑定到要返回的对象上 ,再把HttpMessageConverter返回的对象数据绑定到 controller中方法的参数上
+- @ResponseBody
+  - 该注解用于将Controller的方法返回的对象，通过适当的HttpMessageConverter转换为指定格式后，写入到Response对象的body数据区
+- @ModelAttribute 　　　
+  - 在方法定义上使用 @ModelAttribute 注解：Spring MVC 在调用目标处理方法前，会先逐个调用在方法级上标注了@ModelAttribute 的方法
+  - 在方法的入参前使用 @ModelAttribute 注解：可以从隐含对象中获取隐含的模型数据中获取对象，再将请求参数 –绑定到对象中，再传入入参将方法入参对象添加到模型中
+- @RequestParam　
+  - 在处理方法入参处使用 @RequestParam 可以把请求参 数传递给请求方法
+- @PathVariable
+  - 绑定 URL 占位符到入参
+- @ExceptionHandler
+  - 注解到方法上，出现异常时会执行该方法　　
+- @ControllerAdvice
+  - 使一个Contoller成为全局的异常处理类，类中用@ExceptionHandler方法注解的方法可以处理所有Controller发生的异常
+
+
+
+
+
+
+
+
+
+## SpringMVC-annotation版
+
+### 由于Maven可能存在资源过滤的问题，我们将配置完善
+
+```
+<build>
+   <resources>
+       <resource>
+           <directory>src/main/java</directory>
+           <includes>
+               <include>**/*.properties</include>
+               <include>**/*.xml</include>
+           </includes>
+           <filtering>false</filtering>
+       </resource>
+       <resource>
+           <directory>src/main/resources</directory>
+           <includes>
+               <include>**/*.properties</include>
+               <include>**/*.xml</include>
+           </includes>
+           <filtering>false</filtering>
+       </resource>
+   </resources>
+</build>
+```
+
+### 在pom.xml文件引入相关的依赖：
+
+主要有Spring框架核心库、Spring MVC、servlet , JSTL等。我们在父依赖中已经引入了！(确认)
+
+![image-20210523144032538](C:\Users\Chaoq\AppData\Roaming\Typora\typora-user-images\image-20210523144032538.png)
+
+项目artifacts下面WEB-INF添加lib包, 导入所有的依赖
+
+![image-20210523144116845](C:\Users\Chaoq\AppData\Roaming\Typora\typora-user-images\image-20210523144116845.png)
+
+
+
+### **添加Spring MVC配置文件**
+
+1. 在resource目录下添加springmvc-servlet.xml配置文件，
+2. 配置的形式与Spring容器配置基本类似，
+3. 为了支持基于注解的IOC，设置了自动扫描包的功能，具体配置信息如下：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       https://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/mvc
+       https://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+    <!-- 自动扫描包，让指定包下的注解生效,由IOC容器统一管理 -->
+    <context:component-scan base-package="com.kuang.controller"/>
+    <!-- 让Spring MVC不处理静态资源 .css .js .html .mp3 .mp4-->
+    <mvc:default-servlet-handler />
+    <!--
+    支持mvc注解驱动
+        在spring中一般采用@RequestMapping注解来完成映射关系
+        要想使@RequestMapping注解生效
+        必须向上下文中注册DefaultAnnotationHandlerMapping
+        和一个AnnotationMethodHandlerAdapter实例
+        这两个实例分别在类级别和方法级别处理。
+        而annotation-driven配置帮助我们自动完成上述两个实例的注入。
+
+        等于之前的
+        <!-处理器映射器-->
+<!--    <bean class="org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping"/>-->
+
+        <!--处理器适配器-->
+<!--    <bean class="org.springframework.web.servlet.mvc.SimpleControllerHandlerAdapter"/>->
+     -->
+    <mvc:annotation-driven />
+
+    <!-- 视图解析器 -->
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver"
+          id="internalResourceViewResolver">
+        <!-- 前缀 -->
+        <property name="prefix" value="/WEB-INF/jsp/" />
+        <!-- 后缀 -->
+        <property name="suffix" value=".jsp" />
+    </bean>
+
+</beans>
+```
+
+1. 在视图解析器中我们把所有的视图都存放在/WEB-INF/目录下，这样可以保证视图安全，因为这个目录下的文件，客户端不能直接访问。
+
+2. - 让IOC的注解生效
+   - 静态资源过滤 ：HTML . JS . CSS . 图片 ， 视频 .....
+   - MVC的注解驱动
+   - 配置视图解析器
+
+
+
+### **创建Controller**
+
+1. 编写一个Java控制类：com.kuang.controller.HelloController , 注意编码规范
+2. @Controller是为了让Spring IOC容器初始化时自动扫描到；
+3. @RequestMapping是为了映射请求路径，这里因为类与方法上都有映射所以访问时应该是/HelloController/hello；
+4. 方法中声明Model类型的参数是为了把Action中的数据带到视图中；
+5. 方法返回的结果是视图的名称hello，加上配置文件中的前后缀变成WEB-INF/jsp/**hello**.jsp。
+
+```java
+@Controller
+@RequestMapping("/HelloController")
+public class HelloController {
+
+    @RequestMapping("/hello")
+    public String hello(Model model){
+        //封装数据
+        //向模型中添加属性msg与值，可以在JSP页面中取出并渲染
+        model.addAttribute("msg", "hello, SpringMVCAnnotation!");
+
+        //会被视图解析器处理
+        //web-inf/jsp/hello.jsp
+        return "hello";
+    }
+}
+```
+
+
+
+### **创建视图层**
+
+1. 在WEB-INF/ jsp目录中创建hello.jsp ， 
+2. 视图可以直接取出并展示从Controller带回的信息；
+3. 可以通过EL表示取出Model中存放的值，或者对象；
+
+```jsp
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<html>
+<head>
+   <title>SpringMVC</title>
+</head>
+<body>
+${msg}
+</body>
+</html>
+```
+
+
+
+### **配置Tomcat运行**
+
+配置Tomcat ，  开启服务器 ， 访问 对应的请求路径！
+
+### 小结
+
+1. 新建一个web项目
+
+2. 导入相关jar包
+
+3. 编写web.xml 注册 DispatcherServlet
+
+   1. 向Spring注册我们的DispatcherServlet, 所有的请求都会先经过这个dispatcher
+      1. 然后根据请求路径处理器映射器, 处理器适配器
+      2. 得到视图名称后解析视图,
+      3. 跳转或者重定向到视图
+   2. 编写springmvc拦截路径
+      1. /  所有的请求都被springmvc拦截
+
+4. 编写springMVC配置文件
+
+   1. 处理器映射器和适配器可以通过 <mvc:annotation-driven /> mvc注解驱动代替
+      1. 注册处理器映射器 DefaultAnnotationHandlerMapping
+      2. 注册处理器适配器 AnnotationMethodHandlerAdapter
+   2. 注册视图解析器 InternalResourceViewResolver 需要手动配置
+      1. 设置视图前缀 /WEB-INF/jsp/
+      2. 设置视图后缀 .jsp
+
+5. 创建对应的控制类 controller
+
+   1. 类上 @Controller注解 
+
+      1. ```
+         //代表这个类是一个控制器, 并且会被spring接管
+         //这个注解类中所有方法 如果返回值是String, 并且有页面可以跳转, 就会被视图解析器解析
+         ```
+
+   2. 方法 @RequestMapping("/hello") 表示可以映射的请求路径
+
+   3. ModelAndView.addObject("msg", "ControllerTest1"); 添加key-value 可以在前端解析出数据
+
+   4. ModelAndView.setViewName("test"); 添加视图的名称, 视图解析器可以根据视图名称找到对应的视图并转发或者重定向
+
+6. 转发与重定向
+
+   1. ```
+              //转发 浏览器地址不会变化
+      //        return "forward:/WEB-INF/jsp/test.jsp";
+              //重定向 浏览器会变地址
+              //文.件[/WEB-INF/jsp/redirect1:/index.jsp.jsp] 未找到
+      //        return "redirect1:/index.jsp";
+      ```
+
+7. 完善前端视图和controller之间的对应
+
+8. 测试运行调试
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 问题
 
 ## Web文件夹没有小地球不识别为web项目
 
@@ -11,6 +335,12 @@
 ```
 Tomcat服务器 VM: -Dfile.encoding=UTF-8
 ```
+
+
+
+
+
+
 
 
 
