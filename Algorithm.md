@@ -2126,6 +2126,118 @@ public String removeKdigits(String num, int k) {
 
 # 链表
 
+## 环形链表
+
+### 141. 环形链表
+
+[141. 环形链表](https://leetcode-cn.com/problems/linked-list-cycle/)
+
+![image-20210812192253739](Algorithm.assets/image-20210812192253739.png)
+
+```java
+public boolean hasCycle(ListNode head) {
+    if(head==null || head.next==null){
+        return false;
+    }
+    /**
+        快慢指针 
+        如果快指针能够追上慢指针 那么存在换, 否则 快指针一定最后到达了链表的末尾
+         */
+    ListNode slow = head, fast = head;
+    while(true){
+        if(fast==null || fast.next==null){
+            return false;
+        }
+        slow = slow.next;
+        fast = fast.next.next;
+        if(fast==slow){
+            break;
+        }
+    }
+    return true;
+}
+```
+
+
+
+### 142. 环形链表 II
+
+[142. 环形链表 II](https://leetcode-cn.com/problems/linked-list-cycle-ii/)
+
+- 快慢指针先都在head
+- 相遇的位置一定在环内
+- 这是另一个指针从head开始走, slow从相遇点开始走
+- 两个结点会在入口相遇
+
+
+
+![image-20210812192601409](Algorithm.assets/image-20210812192601409.png)
+
+```java
+public ListNode detectCycle(ListNode head){
+    ListNode fast = head, slow = head, ptr = head;
+    while (true) {
+        if (fast == null || fast.next == null) return null;
+        fast = fast.next.next;
+        slow = slow.next;
+        if (fast == slow) break;
+    }
+	while(ptr!=slow){
+        slow = slow.next;
+        ptr = ptr.next;
+    }
+    return ptr;
+
+}
+```
+
+
+
+### 环形链表环的长度
+
+- 当两个指针首次相遇，证明链表有环的时候
+- 让两个指针从相遇点继续循环前进，并统计前进的循环次数，直到两个指针第2次相遇。
+- 此时，统计出来的前进次数就是环长。
+- 因为指针p1每次走1步，指针p2每次走2步，两者的速度差是1步。 当两个指针再次相遇时，p2比p1多走了整整1圈
+- 环长 = 每一次速度差 × 前进次数 = 前进次数
+  
+
+```java
+public boolean cycleLength(ListNode head) {
+    if(head==null || head.next==null){
+        return false;
+    }
+    /**
+        快慢指针 
+        如果快指针能够追上慢指针 那么存在换, 否则 快指针一定最后到达了链表的末尾
+         */
+    ListNode slow = head, fast = head;
+    while(true){
+        if(fast==null || fast.next==null){
+            return false;
+        }
+        slow = slow.next;
+        fast = fast.next.next;
+        if(fast==slow){
+            break;
+        }
+    }
+    int cnt = 0;
+    do{
+        fast = fast.next.next;
+        slow = slow.next;
+        cnt++;
+    }while(fast!=slow);
+    System.out.println("环形链表长度 = " + cnt);
+}
+```
+
+
+
+
+
+
+
 ## 翻转链表
 
 ### 23. 合并K个升序链表
@@ -2553,6 +2665,126 @@ public ListNode removeNthFromEnd(ListNode head, int n) {
 
 
 # Tree
+
+## 二叉树特征值
+
+### 104. 二叉树的最大深度
+
+[104. 二叉树的最大深度](https://leetcode-cn.com/problems/maximum-depth-of-binary-tree/)
+
+```java
+
+//DFS
+public int maxDepth(TreeNode root) {
+    return dfs(root);
+}   
+
+private int dfs(TreeNode node){
+    if(node==null){
+        return 0;
+    }
+    return Math.max(dfs(node.left), dfs(node.right))+1;
+}
+
+//BFS
+public int maxDepth(TreeNode root) {
+    if(root==null){
+        return 0;
+    }
+    Deque<TreeNode> queue = new ArrayDeque<>();
+    queue.offer(root);
+    int cnt = 0;
+    while(!queue.isEmpty()){
+        cnt++;
+        for(int i=queue.size(); i>0; i--){
+            TreeNode cur = queue.poll();
+            if(cur.left!=null){
+                queue.offer(cur.left);
+            }
+            if(cur.right!=null){
+                queue.offer(cur.right);
+            }
+        }
+    }
+    return cnt;
+} 
+```
+
+
+
+### 662. 二叉树最大宽度
+
+[662. 二叉树最大宽度](https://leetcode-cn.com/problems/maximum-width-of-binary-tree/)
+
+![image-20210812222808259](Algorithm.assets/image-20210812222808259.png)
+
+```java
+//BFS
+public int widthOfBinaryTree(TreeNode root) {
+    if(root==null){
+        return 0;
+    }
+    Deque<InfoNode> queue = new ArrayDeque<>();
+    queue.offer(new InfoNode(root,0,0));
+    //当前层的最左结点深度 以及位置
+    int curDep = 0, curPos = 0, maxWidth = 0;
+    while(!queue.isEmpty()){
+        //当前结点的信息
+        InfoNode cur = queue.poll();
+        int dep = cur.dep;
+        int pos = cur.pos;
+        //不为null 
+        if(cur.node!=null){
+            //左右子节点入队
+            queue.offer(new InfoNode(cur.node.left, dep+1, pos*2));
+            queue.offer(new InfoNode(cur.node.right, dep+1, pos*2+1));
+            //该层的最左结点
+            if(curDep!=dep){
+                //更新深度位置
+                curDep = dep;
+                curPos = pos;
+            }
+            //更新最大宽度
+            maxWidth = Math.max(maxWidth, pos-curPos+1);
+        }
+
+    }
+    return maxWidth;
+}
+
+
+public int widthOfBinaryTree(TreeNode root) {
+    int[] max = new int[]{0};
+    Map<Integer, Integer> map = new HashMap<>();
+    int dep = 0;
+    int pos = 0;
+    dfs(root,dep,pos,max,map);
+    return max[0];
+}
+
+private void dfs(TreeNode node, int dep, int pos, int[] max, Map<Integer, Integer> map){
+    if(node==null){
+        return;
+    }
+    //第一次到达该层, put(dep, pos);
+    map.computeIfAbsent(dep, x->pos);
+    //将当前结点和本层最左侧的位置相减 更新最大值
+    max[0] = Math.max(max[0], pos-map.get(dep)+1);
+    //递归遍历左右子树 左子树在 pos*2 右子树在 pos*2+1
+    dfs(node.left, dep+1, pos*2, max, map);
+    dfs(node.right, dep+1, pos*2+1, max, map);
+}
+```
+
+
+
+
+
+
+
+
+
+
 
 ## 二叉树遍历
 
@@ -3000,6 +3232,54 @@ private TreeNode build(int[] preorder, int[] inorder, int[] nextIndex, Map<Integ
 
 
 ![image-20210809164500219](Algorithm.assets/image-20210809164500219.png)
+
+
+
+### 106. 从中序与后序遍历序列构造二叉树
+
+[106. 从中序与后序遍历序列构造二叉树](https://leetcode-cn.com/problems/construct-binary-tree-from-inorder-and-postorder-traversal/)
+
+- 左 中  右
+- 左 右 中
+
+![image-20210812231737731](Algorithm.assets/image-20210812231737731.png)
+
+
+
+```java
+public TreeNode buildTree(int[] inorder, int[] postorder) {
+    Map<Integer, Integer> map = new HashMap<>();
+    for(int i=0; i<inorder.length; i++){
+        map.put(inorder[i], i);
+    }
+    int len = postorder.length;
+    int[] nextIndex = new int[]{len};
+    return build(postorder, inorder, nextIndex, map, 0, len-1);
+}
+
+private TreeNode build(int[] postorder, int[] inorder, int[] nextIndex, Map<Integer, Integer> map, int l, int r){
+    if(l>r){
+        return null;
+    }
+    nextIndex[0]--;
+    //区间只有一个结点
+    if(l==r){
+        return new TreeNode(inorder[l]);
+    }
+    //获取当前的根结点
+    int curIndex = map.get(postorder[nextIndex[0]]);
+    TreeNode root = new TreeNode(inorder[curIndex]);
+    //递归构建左右子树
+    TreeNode right = build(postorder, inorder, nextIndex, map, curIndex+1, r);
+    TreeNode left = build(postorder, inorder, nextIndex, map, l, curIndex-1);
+
+    root.left = left;
+    root.right = right;
+    return root;
+}
+```
+
+
 
 
 
@@ -4183,7 +4463,56 @@ public boolean canJump(int[] nums) {
 
 
 
+# 回文
 
+
+
+## 9. 回文数
+
+[9. 回文数](https://leetcode-cn.com/problems/palindrome-number/)
+
+![image-20210813013036102](Algorithm.assets/image-20210813013036102.png)
+
+```java
+//转化成字符串
+public boolean isPalindrome(int x) {
+    String reversedStr = (new StringBuilder(x + "")).reverse().toString();
+    return (x + "").equals(reversedStr);
+}
+
+
+
+//通过取整和取余操作获取整数中对应的数字进行比较。
+public boolean isPalindrome(int x) {
+    //边界判断
+    if (x < 0) return false;
+    int div = 1;
+    //
+    while (x / div >= 10) div *= 10;
+    while (x > 0) {
+        int left = x / div;
+        int right = x % 10;
+        if (left != right) return false;
+        x = (x % div) / 10;
+        div /= 100;
+    }
+    return true;
+}
+
+//翻转后半数字
+public boolean isPalindrome(int x) {
+    //思考：这里大家可以思考一下，为什么末尾为 0 就可以直接返回 false
+    if (x < 0 || (x % 10 == 0 && x != 0)) return false;
+    int revertedNumber = 0;
+    while (x > revertedNumber) {
+        revertedNumber = revertedNumber * 10 + x % 10;
+        x /= 10;
+    }
+    return x == revertedNumber || x == revertedNumber / 10;
+}
+
+
+```
 
 
 
@@ -4192,6 +4521,137 @@ public boolean canJump(int[] nums) {
 
 
 # String Manipulation
+
+## 翻转字符串
+
+### 344. 反转字符串
+
+[344. 反转字符串](https://leetcode-cn.com/problems/reverse-string/)
+
+![image-20210812215326612](Algorithm.assets/image-20210812215326612.png)
+
+```java
+//位运算
+public void reverseString(char[] s) {
+    if(s==null || s.length==0){
+        return;
+    }
+    int len = s.length, l = 0, r = len-1;
+    while(l<r){
+        s[l] ^= s[r];//s[l] = s[l]^s[r]
+        s[r] ^= s[l];//s[r] = s[r]^s[l] = s[r]^s[l]^s[r] = s[l];
+        s[l] ^= s[r];//s[l] = s[l]^s[r] = (s[l]^s[r])^s[r] = s[l]^s[l]^s[r] = s[r];
+        l++;
+        r--;
+    }
+
+}
+
+
+public void reverseString(char[] s) {
+    if(s==null || s.length==0){
+        return;
+    }
+    int len = s.length, l = 0, r = len-1;
+    while(l<r){
+        swap(s, l, r);
+        l++;
+        r--;
+    }
+
+}
+
+private void swap(char[] s, int i, int j){
+    char temp = s[i];
+    s[i] = s[j];
+    s[j] = temp;
+}
+```
+
+
+
+### 541. 反转字符串 II
+
+[541. 反转字符串 II](https://leetcode-cn.com/problems/reverse-string-ii/)
+
+![image-20210812215837634](Algorithm.assets/image-20210812215837634.png)
+
+```java
+//简洁写法
+public String reverseStr(String s, int k) {
+    int len = s.length();
+    char[] c = s.toCharArray();
+    //每次截取2k长度
+    for(int i=0; i<len; i+=2*k){
+        //右端点为 i+k-1 len-1中的较小值
+        int l = i, r = Math.min(len-1, i+k-1);
+        //双指针交换字符
+        while(l<=r){
+            char temp = c[l];
+            c[l] = c[r];
+            c[r] = temp;
+            l++;
+            r--;
+        }
+    }
+    return new String(c);
+}
+
+public String reverseStr(String s, int k) {
+    int len = s.length(), l=0;
+    StringBuffer sb = new StringBuffer();
+    //每次切割2k的区间
+    while(l<len){
+        //右区间要取与字符串最后一个索引中的最小值, 防止越界
+        int r = Math.min(l+2*k-1, len-1);
+        reverse(s,l,r,k,sb);
+        l = r+1;
+    }
+    return sb.toString();
+}
+
+//将s字符串中 [l,r]区间内的字符翻转并且append到sb中
+private void reverse(String s, int l, int r, int k, StringBuffer sb){
+    int len = r-l+1;
+    int mid = (r+l)>>>1;
+    //翻转前k个
+    if(len==2*k){
+        sb.append(doRev(s,l,mid));
+        sb.append(s.substring(mid+1,r+1));
+    }else if(len>=k){
+        //翻转前k个 
+        sb.append(doRev(s,l,l+k-1));
+        sb.append(s.substring(l+k,r+1));
+    }else if(len<k){
+        //翻转所有
+        sb.append(doRev(s,l,r));
+    }
+}
+
+//将s[l,r]区间的字符翻转 返回翻转后的字符串
+private String doRev(String s, int l, int r){
+    char[] c = new char[r-l+1];
+    int i = 0;
+    int j = r-l;
+    while(l<=r){
+        c[i] = s.charAt(r);
+        c[j] = s.charAt(l);
+        l++;
+        i++;
+        r--;
+        j--;
+    }
+    return new String(c);
+}
+```
+
+
+
+
+
+
+
+
 
 ## 字符串比较
 
