@@ -52,6 +52,10 @@ https://www.bilibili.com/video/BV1go4y1m7Fd/?spm_id_from=333.788.b_7265636f5f6c6
 
 ![image-20210813152331988](Redis面试题.assets/image-20210813152331988.png)
 
+
+
+![image-20210816111723450](Redis面试题.assets/image-20210816111723450.png)
+
 ### redis单线程和DB多线程访问的对比
 
 - 秒杀场景
@@ -98,6 +102,10 @@ https://www.bilibili.com/video/BV1go4y1m7Fd/?spm_id_from=333.788.b_7265636f5f6c6
 
 
 
+![image-20210816143425788](Redis面试题.assets/image-20210816143425788.png)
+
+
+
 ## 遇到过缓存击穿吗?
 
 - 总的来说是数据库有redis没有的数据, 遭遇了大量的并发请求
@@ -114,7 +122,8 @@ https://www.bilibili.com/video/BV1go4y1m7Fd/?spm_id_from=333.788.b_7265636f5f6c6
      2. 没抢到sleep
   3. DB访问完 回写redis 
   4. sleep的回到第一步 redis有了就返回, 没有继续抢锁 
-- 
+
+![image-20210816143440559](Redis面试题.assets/image-20210816143440559.png)
 
 
 
@@ -130,6 +139,12 @@ https://www.bilibili.com/video/BV1go4y1m7Fd/?spm_id_from=333.788.b_7265636f5f6c6
 
 
 ![image-20210813120043349](Redis面试题.assets/image-20210813120043349.png)
+
+
+
+![image-20210816143315540](Redis面试题.assets/image-20210816143315540.png)
+
+
 
 
 
@@ -149,6 +164,9 @@ https://www.bilibili.com/video/BV1go4y1m7Fd/?spm_id_from=333.788.b_7265636f5f6c6
 
 
 ### 缓存击穿
+
+- 设置热点数据永不过期, 注意在value当中包含一个逻辑上的过期时间, 然后另起一个线程, 定期更新这些缓存
+- 分布式锁, 对于一个key的请求, 只有一个能够拿到锁, 进入DB以后回写到redis, 其他线程就能从redis获取数据不需要进入DB
 
 ![image-20210813144644326](Redis面试题.assets/image-20210813144644326.png)
 
@@ -176,21 +194,17 @@ https://www.bilibili.com/video/BV1go4y1m7Fd/?spm_id_from=333.788.b_7265636f5f6c6
 
 ## Redis过期键的删除策略
 
-### 过期精度
-
-![image-20210813134821765](Redis面试题.assets/image-20210813134821765.png)
-
-### 过期和持久
-
-![image-20210813134811260](Redis面试题.assets/image-20210813134811260.png)
+![image-20210816143213388](Redis面试题.assets/image-20210816143213388.png)
 
 
 
-### Redis如何淘汰过期的keys
+
+
+## Redis如何淘汰过期的keys
 
 ![image-20210813135005712](Redis面试题.assets/image-20210813135005712.png)
 
-### 在复制AOF文件时如何处理过期
+## 在复制AOF文件时如何处理过期
 
 ![image-20210813135058540](Redis面试题.assets/image-20210813135058540.png)
 
@@ -222,6 +236,12 @@ https://www.bilibili.com/video/BV1go4y1m7Fd/?spm_id_from=333.788.b_7265636f5f6c6
 
 ## 数据库与缓存不一致如何解决
 
+![image-20210816152716398](Redis面试题.assets/image-20210816152716398.png)
+
+![image-20210816152851305](Redis面试题.assets/image-20210816152851305.png)
+
+![image-20210816113402857](Redis面试题.assets/image-20210816113402857.png)
+
 1. redis是缓存, 更倾向于有稍微的时差
 2. 还是要减少DB的操作, 跟新数据库删缓存
 3. 落地实现, 就是canal
@@ -248,7 +268,7 @@ https://www.bilibili.com/video/BV1go4y1m7Fd/?spm_id_from=333.788.b_7265636f5f6c6
 - 异步后台进程完成持久化
 - fork +COW
 
-
+![image-20210816112324290](Redis面试题.assets/image-20210816112324290.png)
 
 
 
@@ -262,6 +282,19 @@ https://www.bilibili.com/video/BV1go4y1m7Fd/?spm_id_from=333.788.b_7265636f5f6c6
 
 
 ### 持久化
+
+- RDB
+  - 速度快 反序列化读文件
+  - 生成当前文件的快照
+  - fork 子进程, COW 谁改动共享的数据, 就复制一份不影响另一方
+- AOF
+  - 慢, 执行操作,
+  - 每操作
+    - 数据完整, fsync
+  - 每秒
+    - 可能丢失一秒 每秒调用一次fsync
+  - 交给内核, buffer满了就写入磁盘
+    - buffer满了调用 fsync
 
 ![image-20210813131617451](Redis面试题.assets/image-20210813131617451.png)
 
@@ -336,6 +369,16 @@ UNWATCH命令可以取消watch对所有key的监控。
 
 ## Redis集群方案
 
+![image-20210816153119205](Redis面试题.assets/image-20210816153119205.png)
+
+![image-20210816153449100](Redis面试题.assets/image-20210816153449100.png)
+
+![image-20210816153505825](Redis面试题.assets/image-20210816153505825.png)
+
+![image-20210816153241942](Redis面试题.assets/image-20210816153241942.png)
+
+![image-20210816130128949](Redis面试题.assets/image-20210816130128949.png)
+
 ![image-20210813135307031](Redis面试题.assets/image-20210813135307031.png)
 
 ## Redis事务如何实现
@@ -364,6 +407,14 @@ UNWATCH命令可以取消watch对所有key的监控。
 
 
 ## Redis主从复制的原理
+
+![image-20210816151926357](Redis面试题.assets/image-20210816151926357.png)
+
+![image-20210816152138946](Redis面试题.assets/image-20210816152138946.png)
+
+
+
+![image-20210816152038355](Redis面试题.assets/image-20210816152038355.png)
 
 ### 主从复制机制
 
@@ -397,7 +448,23 @@ UNWATCH命令可以取消watch对所有key的监控。
 
 ## redis VS memcached
 
+- memcached
+  - 只有string 
+  - V没有本地方法
+  - 需要取回全量的数据, 通过IO客户端取回数据反序列化, 再对数据进行相应的操作
+  - 数据向计算移动
+- redis
+  - V有类型, 并且有本地方法
+  - 在客户端执行对应的计算, 返回
+  - 计算向数据移动
+
 ![image-20210813214819276](Redis面试题.assets/image-20210813214819276.png)
+
+
+
+![image-20210816093027744](Redis面试题.assets/image-20210816093027744.png)
+
+
 
 
 
@@ -405,6 +472,29 @@ UNWATCH命令可以取消watch对所有key的监控。
 
 ## 分布式锁
 
+- setnx + setex
+  - 如果不存在设置, 并且设置超时时间
+  - 因为是两个操作, 不是原子的, 可能先设置了 然后服务器宕机, 造成这个锁没有设置过期时间导致死锁
+- set(key,value,ex, px) 
+  - 将设置以及设置超时时间变成原子操作
+- 问题
+  1. 拿到锁的A线程, 执行事件超过了自己设置的锁的过期时间
+     1. 超时的那部分操作时不安全的, 因为线程A已经不再拥有锁了,
+     2. 需要redission监控锁的超时时间, 续期锁的超时时间
+  2. 加锁和释放锁不是一个线程的问题
+     1. 同样是超时以后才结束当前线程的操作, 超时部分操作不安全
+     2. 执行完了以后会删除锁, 但是可能超时后线程B拿到了锁, 但是此时线程A结束又删除了B拿到的锁
+     3. 需要在value中存入唯一的UUID, 删除时判断是不是自己设置的锁, 是就删除
+     4. 但是get delete 是两步操作, 不是原子, 可能get的时候是自己设置的, 但是delete之前被别的线程设置, 
+     5. 需要使用lua脚本保证get delete是原子操作
+  3. 不可重入
+     1. 同一个线程不能拿着锁还能获取锁
+     2. 对于一个锁设置一个计数器, 计数器=0 才能释放锁
+  4. 主从复制实现HA
+     1. 加锁在主服务器, 但是还没复制到从服务器就宕机了, 锁的数据丢失了
+     2. 使用redlock, 向多机的redis服务器申请锁, 超过一半以上的服务器返回成功,  就是获取锁成功, 并且获取锁成功的时间必须小于锁的过期时间, 不然获取成功的时候, 有的服务器的锁已经过期释放了
+
+![image-20210816144237645](Redis面试题.assets/image-20210816144237645.png)
 
 
 
@@ -414,6 +504,33 @@ UNWATCH命令可以取消watch对所有key的监控。
 
 
 
+
+
+## Redis的数据结构及使用场景
+
+![image-20210816130026044](Redis面试题.assets/image-20210816130026044.png)
+
+![image-20210816150558587](Redis面试题.assets/image-20210816150558587.png)
+
+## BloomFilter
+
+![image-20210816134952824](Redis面试题.assets/image-20210816134952824.png)
+
+![image-20210816135239793](Redis面试题.assets/image-20210816135239793.png)
+
+
+
+## 分布式系统常用的缓存方案
+
+![image-20210816140311328](Redis面试题.assets/image-20210816140311328.png)
+
+
+
+## redis事务的实现
+
+![image-20210816150846734](Redis面试题.assets/image-20210816150846734.png)
+
+![image-20210816151148237](Redis面试题.assets/image-20210816151148237.png)
 
 # Redis概述
 

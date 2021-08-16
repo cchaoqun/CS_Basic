@@ -752,6 +752,8 @@ public class test1 {
 - hashCode和equals方法的关系
 - 面试官可能会问你：“你重写过 hashcode 和 equals 么，为什么重写equals时必须重写hashCode方法？”
 
+
+
 #### hashCode()介绍
 
 hashCode() 的作用是获取哈希码，也称为散列码；它实际上是返回一个int整数。这个哈希码的作用是确定该对象在哈希表中的索引位置。
@@ -789,7 +791,12 @@ hashCode() 定义在JDK的Object.java中，这就意味着Java中的任何类都
 - 引用相等 比较的是他们指向的内存地址是否相等。
   
 
+### 为什么重写equals要重写hashcode
 
+总结来说就是两点
+
+- 1.使用hashcode方法提前校验，可以避免每一次比对都调用equals方法，提高效率
+- 2.保证是同一个对象，如果重写了equals方法，而没有重写hashcode方法，会出现equals相等的对象，hashcode不相等的情况，重写hashcode方法就是为了避免这种情况的出现。
 
 ## 值传递
 

@@ -463,6 +463,15 @@ class LargestSubArrayCircular{
   - 如果i为负数, 希望以i-1结尾的子数组积尽可能小且为负数
     - dpMin[i] = Math.min(dpMax[i-1] * num[i], dpMin[i-1] * num[i], num[i])
   - 更新globalMax
+-  乘法乘积和求sum区别
+   -  initialization: 
+      -  Product: result 从1开始
+      -  sum: result从0开始
+-  最大乘积
+   -  case 1: 负数 * 负数
+   -  case 2: 正数 * 正数
+-  Step1: DP 定义
+   -  dpPositive[i]  : 到i为止包含i的正向最大乘积
 
 ```java
 public int maxProduct(int[] nums) {
@@ -747,7 +756,95 @@ private int findMax(int[] num, int target){
 
 
 
-## 子序列
+## 子序列(Subsequence)
+
+### []300. 最长递增子序列
+
+[300. 最长递增子序列](https://leetcode-cn.com/problems/longest-increasing-subsequence/)
+
+- dp定义
+  - dp[i] 表示以i位置结束的最长的递增子序列的长度
+- base case
+  - dp[0] = 1;
+- Induction rule
+  - 对于j in [0:i) 每个元素查看 nums[j]<nums[i] 是否成立, 成立就可以添加在后面, 找出可以使dp[i] 最大的
+  - 更新globalMax
+- Fill in Order
+  - 左右
+- Return what
+  - globalmax
+- Time && Space
+  - Time O(n^2)
+  - Space O(n)
+
+![image-20210815110915783](Algorithm.assets/image-20210815110915783.png)
+
+```java
+//DP
+public int lengthOfLIS(int[] nums) {
+    int globalMax = 1;
+    int n = nums.length;
+    int[] dp = new int[n];
+    dp[0] = 1;
+    for(int i=1; i<n; i++){
+        dp[i] = 1;
+        for(int j=0; j<i; j++){
+            if(nums[j]<nums[i]){
+                dp[i] = Math.max(dp[i], dp[j]+1);
+            }
+        }
+        globalMax = Math.max(dp[i], globalMax);
+    }
+    return globalMax;
+}
+
+//DP+二分
+public int lengthOfLIS(int[] nums) {
+    int[] tails = new int[nums.length];
+    int res = 0;
+    for(int num : nums) {
+        int i = 0, j = res;
+        while(i < j) {
+            int m = (i + j) / 2;
+            if(tails[m] < num) i = m + 1;
+            else j = m;
+        }
+        tails[i] = num;
+        if(res == j) res++;
+    }
+    return res;
+}
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### 491. 递增子序列
+
+[491. 递增子序列](https://leetcode-cn.com/problems/increasing-subsequences/)
+
+
+
+
 
 ### 115. 不同的子序列
 
@@ -2125,6 +2222,202 @@ public String removeKdigits(String num, int k) {
 
 
 # 链表
+
+## 排序链表
+
+### 148. 排序链表
+
+[148. 排序链表](https://leetcode-cn.com/problems/sort-list/)
+
+![image-20210814192947836](Algorithm.assets/image-20210814192947836.png)
+
+
+
+```java
+public ListNode sortList(ListNode head) {
+    return mergeSort(head);
+}
+
+private ListNode mergeSort(ListNode node){
+    //base case I 只有一个结点或者没有直接返回
+    if(node==null || node.next==null){
+        return node;
+    }
+    //只有两个结点, 按升序调整后返回
+    if(node.next.next==null){
+        if(node.val < node.next.val){
+            return node;
+        }else{
+            ListNode head = node.next;
+            node.next.next = node;
+            node.next = null;
+            return head;
+        }
+    }
+    //>2个结点, 分割为一半后递归调整成升序
+    ListNode fast = node.next, slow = node;
+    //找中点
+    while(fast!=null && fast.next!=null){
+        fast = fast.next.next;
+        slow = slow.next;
+    }
+    //切分node链表
+    ListNode temp = slow.next;
+    slow.next = null;
+    //分别对两半递归
+    ListNode first = mergeSort(node);
+    ListNode second = mergeSort(temp);
+    //合并两个升序链表
+    return mergeTwoSortedList(first, second);
+}
+//合并两个升序链表
+private ListNode mergeTwoSortedList(ListNode f, ListNode s){
+    if(f==null){
+        return s;
+    }
+    if(s==null){
+        return f;
+    }
+    if(f.val<=s.val){
+        f.next = mergeTwoSortedList(f.next, s);
+        return f;
+    }else{
+        s.next = mergeTwoSortedList(f,s.next);
+        return s;
+    }
+}
+```
+
+
+
+### 剑指 Offer II 078. 合并排序链表
+
+[剑指 Offer II 078. 合并排序链表](https://leetcode-cn.com/problems/vvXgSW/)
+
+- 链表两两合并升序链表, 剩下的递归继续处理
+
+![image-20210814194714900](Algorithm.assets/image-20210814194714900.png)
+
+```java
+//归并
+public ListNode mergeKLists(ListNode[] lists) {
+    //Base case I 没有链表
+    if(lists==null || lists.length==0){
+        return null;
+    }
+    //Base case II 只有一个链表 直接返回
+    if(lists.length==1){
+        return lists[0];
+    }
+    //将链表两两合并后递归
+    ListNode[] newList = new ListNode[(lists.length+1)/2];
+
+    for(int i=0; i<newList.length; i++){
+        if(i*2+1>=lists.length){
+            //奇数情况, 最后剩下一个链表
+            newList[i] = lists[i*2];
+        }else{
+            //偶数情况, 合并lists中连续的两个链表
+            newList[i] = mergeTwoSortedList(lists[i*2], lists[i*2+1]);
+        }
+    }
+    //链表合并后数量减半, 继续递归处理剩下的链表
+    return mergeKLists(newList);
+
+}
+
+//合并两个升序链表
+private ListNode mergeTwoSortedList(ListNode l, ListNode r){
+    ListNode dummy = new ListNode(0);
+    ListNode cur = dummy;
+    while(l!=null && r!=null){
+        if(l.val<=r.val){
+            cur.next = l;
+            l = l.next;
+        }else{
+            cur.next = r;
+            r = r.next;
+        }
+        cur = cur.next;
+    }
+    cur.next = l==null?r:l;
+    return dummy.next;
+}
+
+//最小堆
+public ListNode mergeKLists(ListNode[] lists) {
+    if (lists == null || lists.length == 0) {
+        return null;
+    }
+    PriorityQueue<ListNode> minHeap = new PriorityQueue<>((a, b) -> (a.val - b.val));
+    // 初始化将所有链表的头节点放入优先队列
+    for (ListNode head : lists) {
+        if (head != null) {
+            minHeap.offer(head);
+        }
+    }
+    ListNode dummy = new ListNode(0);
+    ListNode cur = dummy;
+    while (!minHeap.isEmpty()) {
+        ListNode min = minHeap.poll();
+        cur.next = min;
+        if (min.next != null) minHeap.offer(min.next);
+        cur = cur.next;
+    }
+    return dummy.next;
+}
+
+
+```
+
+
+
+
+
+
+
+### 剑指 Offer II 029. 排序的循环链表
+
+[剑指 Offer II 029. 排序的循环链表](https://leetcode-cn.com/problems/4ueAj6/)
+
+![image-20210814201301403](Algorithm.assets/image-20210814201301403.png)
+
+```java
+public Node insert(Node head, int insertVal) {
+    Node node = new Node(insertVal);
+    if(head==null){
+        node.next = node;
+        return node;
+    }
+    //找最小结点
+    Node cur = head;
+    while(cur.val <= cur.next.val){
+        cur = cur.next;
+        if(cur==head){
+            break;
+        }
+    }
+    //插入到最小最大结点之间
+    if(node.val>=cur.val || node.val<=cur.next.val){
+        node.next = cur.next;
+        cur.next = node;
+        return head;
+    }
+    //从最小值开始找到插入的结点位置
+    cur = cur.next;
+    while(node.val>cur.next.val){
+        cur = cur.next;
+    }
+    node.next = cur.next;
+    cur.next = node;
+    return head;
+
+}
+```
+
+
+
+
 
 ## 环形链表
 
@@ -4522,6 +4815,73 @@ public boolean isPalindrome(int x) {
 
 # String Manipulation
 
+## 覆盖子串
+
+### 76. 最小覆盖子串
+
+[76. 最小覆盖子串](https://leetcode-cn.com/problems/minimum-window-substring/)
+
+- Map 统计t中所有字符出现的次数
+- 维护滑动窗口, 统计窗口内字符出现的次数
+- 当t中字符都出现在窗口并且每个字符出现的次数都不大于窗口中对应字符出现的次数, 窗口左边依次缩小
+- 每次更新最小的长度记录对应的左右端点下标
+- 直到不能包括全部的t的字符进入下一轮循环
+
+![image-20210816202502282](Algorithm.assets/image-20210816202502282.png)
+
+
+
+```java
+public String minWindow(String s, String t) {
+    Map<Character, Integer> sMap = new HashMap<>();
+    Map<Character, Integer> tMap = new HashMap<>();
+    //统计t中字符出现的次数
+    for(char c :t.toCharArray()){
+		tMap.put(c, tMap.getOrDefault(c,0)+1);
+    }
+    int l=0, r=-1, len = s.length();
+    int lmin = -1, rmin = -1, lenmin = Integer.MAX_VALUE;
+    while(r<len-1){
+        r++;
+        //窗口右端点字符加入
+        if(tMap.containsKey(s.charAt(r))){
+			sMap.put(s.charAt(r), sMap.getOrDefault(s.charAt(r), 0)+1);
+        }
+        //判断当前窗口是否覆盖t
+        while(valid(sMap, tMap) && l<=r){
+            //更新最小覆盖窗口
+            if(lenmin>r-l+1){
+                lmin = l;
+                rmin = r;
+                lenmin = r-l+1;
+            }
+            if(tMap.containsKey(s.charAt(l))){
+                sMap.put(s.charAt(l), sMap.get(s.charAt(l))-1);
+            }
+            l++;
+        }
+    }
+    return lenmin==Integer.MAX_VALUE?"":s.substring(lmin, rmin+1);
+    
+}
+
+
+private boolean valid(Map<Character, Integer> sMap, Map<Character, Integer> tMap){
+    for(Map.Entry<Character, Integer> entry : tMap.entrySet()){
+        char key = entry.getKey();
+        int val = entry.getValue();
+        if(!sMap.containsKey(key) || sMap.get(key)<val){
+            return false;
+        }
+    }
+    return true;
+}
+```
+
+
+
+
+
 ## 翻转字符串
 
 ### 344. 反转字符串
@@ -5069,7 +5429,228 @@ private void swap(int[] nums, int index1, int index2) {
 
 # 实现数据结构
 
-## LRU
+完全二叉树：设二叉树的深度为h，除第 h 层外，其它各层 (1～h-1) 的结点数都达到最大个数，
+第 h 层所有的结点都连续集中在最左边
+
+满二叉树：深度为k且有2^k-1个结点的二叉树称为满二叉树
+
+
+
+## 单调栈结构
+
+https://blog.csdn.net/weixin_40374341/article/details/100055210?utm_term=%E5%8D%95%E8%B0%83%E6%A0%88%E7%BB%93%E6%9E%84&utm_medium=distribute.pc_aggpage_search_result.none-task-blog-2~all~sobaiduweb~default-2-100055210&spm=3001.4430
+
+题目描述
+
+给定一个`不含有重复值`的数组 arr，找到每一个 i 位置左边和右边离 i 位置最近且值比 arr[i] 小的位置。返回所有位置相应的信息。
+
+- 元素依次从左到右入栈 (单调递增栈)
+  - 如果当前栈空直接入栈
+  - 当栈不为空, 并且栈顶下标对应的元素>当前准备入栈的元素,
+    - 栈顶下标出栈, 
+    - 对应右下标为当前入栈元素的下标, 
+    - 如果栈为空, 左下标为-1 否则为栈顶下标
+- 遍历完, 剩余栈中的元素依次出栈
+  - 右下标为-1
+  - 栈空左下标为-1
+  - 栈不空左下标为栈顶下标
+
+![image-20210816205211535](Algorithm.assets/image-20210816205211535.png)
+
+
+
+```java
+public static int[][] getNearLessNoRepeat(int[] nums){
+    //单调递增栈存储下标
+    Deque<Integer> monoStack = new ArrayDeque<>();
+    int len = nums.length;
+    //每个位置元素对应的左右下标
+    int[][] res = new int[len][2];
+    for(int i=0; i<len; i++){
+        //当前元素<栈顶下标对应的元素
+        while(!monoStack.isEmpty() && nums[i]<nums[monoStack.peek()]){
+            //出栈 下标
+            int top = monoStack.pop();
+            //左下标栈空就是-1 否则是栈顶下标
+            int leftIndex = monoStack.isEmpty()?-1:monoStack.peek();
+            //右下标是i
+            res[top][0] = leftIndex;
+            res[top][1] = i;
+        }
+        //当前元素下标入栈, 满足单调递增栈
+        monoStack.push(i);
+    }
+    //栈中剩余元素
+    while(!monoStack.isEmpty()){
+        int top = monoStack.pop();
+        //左下标
+        int leftIndex = monoStack.isEmpty()?-1:monoStack.peek();
+        //右下标=-1
+        res[top][1] = -1;
+        res[top][0] = leftIndex;
+    }
+    
+}
+```
+
+
+
+
+
+
+
+## 146. LRU 缓存机制
+
+[146. LRU 缓存机制](https://leetcode-cn.com/problems/lru-cache/)
+
+- 数据结构
+  - HashMap<key,val> 保存插入的key-val
+  - 双链表DLinkedNode<key,value, prev, next> 每个结点保存一个key-value pair 以及prev next指向前后结点的指针
+  - head tail 双链表的头尾结点
+  - size 双链表结点个数
+  - capacity 双链表最多存储的结点数量, 超出了需要删除最近最少使用的结点即双链表为的结点, 并且也需要在hashmap中删除
+- get
+  - 从hashmap get对应的key 
+  - 如果结点==null 不存在, 返回-1
+  - 存在, 将对应结点移动到双链表的头 返回结点对应的值
+- put
+  - 先获取这个结点
+  - 结点不存在
+    - 创建这个key-value对应的结点
+    - 插入到双链表的头
+    - 插入到hashmap
+    - size++
+    - 检查size>capacity
+      - true 移除双链表尾的结点 获得这个删除的结点的key
+      - 从hashmap中删除
+      - size--
+  - 结点存在
+    - 修改结点的值
+    - 将结点移动到双链表的头
+
+
+
+- 使用LinkedHashMap
+  - 维持了插入的顺序, 所以第一个元素就是最近未使用
+  - get 如果存在就删除了再插入
+  - put 如果存在 删除了再插入 如果超出capacity 通过迭代器删除第一个元素
+
+![image-20210816210505243](Algorithm.assets/image-20210816210505243.png)
+
+```java
+//HashMap Node
+class LRUCache {
+    class Node{
+        int key;
+        int val;
+    	Node prev, next;
+        public Node(){}
+        public Node(int key, int val){
+            this.key = key;
+            this.val = val;
+        }
+    }
+    Node head;
+    Node tail;
+    int size;
+    int capacity;
+    Map<Integer, Node> map;
+    
+    public LRUCache(int capacity){
+		this.capacity = capacity;
+        map = new HashMap<>();
+        size = 0;
+        head = new Node();
+        tail = new Node();
+        head.next = tail;
+        tail.prev = head;
+    }
+
+    public int get(int key){
+        Node cur = map.get(key);
+        if(cur==null){
+            return -1;
+        }
+        moveToHead(cur);
+        return cur.val;
+    }
+    
+    public void put(int key, int val){
+		Node cur = map.get(key);
+        if(cur==null){
+            Node newCur = new Node(key, val);
+            addToHead(newCur);
+            map.put(key,newCur);
+            size++;
+            if(size>capacity){
+				Node curTail = removeTail();
+                map.remove(curTail.key);
+                size--;
+            }
+        }else{
+            cur.val = val;
+            moveToHead(cur);
+        }
+    }
+    
+    private void addToHead(Node node){
+		node.next = head.next;
+        node.prev = head;
+       	head.next.prev = node;
+        head.next = node;
+    }
+    
+    private void removeNode(Node node){
+        node.next.prev = node.prev;
+        node.prev.next = node.next;
+        
+    }
+    
+    private void moveToHead(Node node){
+        removeNode(node);
+        addToHead(node);
+    }
+    
+    private Node removeTail(){
+        Node oldTail = tail.prev;
+        removeNode(oldTail);
+        return oldTail;
+    }
+
+
+}
+//LinekdHashMap
+class LRUCache {
+	int capacity;
+    Map<Integer, Integer> map;
+    public LRUCache(int capacity) {
+		this.capacity = capacity;
+        map = new LinkedHashMap<>();
+    }
+    
+    public int get(int key) {
+		if(!map.containsKey(key)){
+            return -1;
+        }
+        int val = map.remove(key);
+        map.put(key,val);
+        return val;
+    }
+    
+    public void put(int key, int value) {
+		if(map.containsKey(key)){
+            map.remove(key);
+            map.put(key,value);
+            return;
+        }
+        map.put(key,value);
+        if(map.size()>capacity){
+            map.remove(map.entrySet().iterator().next().getKey());
+        }
+    }
+}
+
+```
 
 
 
@@ -5267,4 +5848,11 @@ https://www.cnblogs.com/xiaoxiao075/p/10351122.html
 
 
 
+
+# 周赛
+
+## 第 254 场周赛
+
+```java
+```
 
