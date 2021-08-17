@@ -2,6 +2,12 @@
 
 
 
+
+
+ctrl+shift+alt+U 生成类接口间的关系图
+
+ctrl+shift+b 生成图
+
 # JVM
 
 https://thinkwon.blog.csdn.net/article/details/104390752

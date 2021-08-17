@@ -1,3 +1,162 @@
+# 面试题
+
+## 打印 A1B2C3...Z26
+
+```java
+package A_MultiThread;
+
+/**
+ * @author Chaoqun Cheng
+ * @date 2021-08-2021/8/17-16:01
+ */
+
+public class A1B2_wait_notify {
+
+    public static void main(String[] args) {
+        final Object o = new Object();
+        int[] nums = new int[26];
+        char[] strs = new char[26];
+        for(int i=0; i<26; i++){
+            nums[i] = i+1;
+            strs[i] = (char)('A'+i);
+        }
+
+        new Thread(()->{
+            synchronized (o){
+                for(char str : strs){
+                    System.out.println(str);
+                    try {
+                        o.notify();
+                        o.wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                o.notify();// 必须否则无法停止程序
+            }
+        }, "t1").start();
+
+        new Thread(()->{
+            synchronized (o){
+                for(int num : nums){
+                    System.out.println(num);
+                    try {
+                        o.notify();
+                        o.wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                o.notify();
+            }
+        }, "t2").start();
+    }
+}
+
+```
+
+
+
+## 2消费者10生产者 固定容器
+
+```java
+package A_MultiThread;
+
+import java.util.LinkedList;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+/**
+ * @author Chaoqun Cheng
+ * @date 2021-08-2021/8/17-16:33
+ */
+
+public class MyContainer_Condition<T> {
+    final private LinkedList<T> lists = new LinkedList<>();
+    final private int MAX = 10;
+    private int count = 0;
+    private Lock lock = new ReentrantLock();
+    private Condition producer = lock.newCondition();
+    private Condition consumer = lock.newCondition();
+
+    public void put(T t){
+        try {
+            lock.lock();
+            while(lists.size()==MAX){
+                producer.await();
+            }
+            lists.add(t);
+            ++count;
+            consumer.signalAll();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }finally {
+            lock.unlock();
+        }
+    }
+
+    public T get(){
+        T t = null;
+        try {
+            lock.lock();
+            while(lists.size()==0){
+                consumer.await();
+            }
+            t = lists.removeFirst();
+            --count;
+            producer.signalAll();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }finally {
+            lock.unlock();
+        }
+        return t;
+    }
+
+    public static void main(String[] args) {
+        MyContainer_Condition<String> c = new MyContainer_Condition<>();
+        for (int i = 0; i < 10; i++) {
+            new Thread(()->{
+                for (int j = 0; j < 5; j++) {
+                    System.out.println(c.get());
+                }
+            }, "c"+i).start();
+        }
+
+        try {
+            TimeUnit.SECONDS.sleep(2);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        for (int i = 0; i < 2; i++) {
+            new Thread(()->{
+                for (int j = 0; j < 25; j++) {
+                    c.put(Thread.currentThread().getName() + " "+j);
+
+                }
+            }, "p"+i).start();
+        }
+    }
+}
+
+```
+
+
+
+## 手写线程池
+
+https://blog.csdn.net/hongtaolong/article/details/87808009?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522162921121516780261961655%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=162921121516780261961655&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~sobaiduend~default-1-87808009.pc_search_download_positive&utm_term=%E6%89%8B%E5%86%99%E7%BA%BF%E7%A8%8B%E6%B1%A0&spm=1018.2226.3001.4187
+
+```java
+```
+
+
+
+
+
 # 多线程
 
 ```
@@ -94,16 +253,15 @@ https://www.jianshu.com/p/40d4c7aebd66
 线程具有许多传统进程所具有的特征，故又称为轻型进程(Light—Weight Process)或进程元；而把传统的进程称为重型进程(Heavy—Weight Process)，它相当于只有一个线程的任务。在引入了线程的操作系统中，通常一个进程都有若干个线程，至少包含一个线程。
 
 - 根本区别：进程是操作系统资源分配的基本单位，而线程是处理器任务调度和执行的基本单位
-
 - 资源开销：每个进程都有独立的代码和数据空间（程序上下文），程序之间的切换会有较大的开销；线程可以看做轻量级的进程，同一进程中的线程共享代码和数据空间，每个线程都有自己独立的运行栈和程序计数器（PC），线程之间切换的开销小。
-
 - 包含关系：如果一个进程内有多个线程，则执行过程不是一条线的，而是多条线（线程）共同完成的；线程是进程的一部分，所以线程也被称为轻权进程或者轻量级进程。
-
 - 内存分配：同一进程的线程共享本进程的地址空间和资源，而进程之间的地址空间和资源是相互独立的
-
 - 影响关系：一个进程崩溃后，在保护模式下不会对其他进程产生影响，但是一个线程崩溃整个进程都死掉。所以多进程要比多线程健壮。
-
 - 执行过程：每个独立的进程有程序运行的入口、顺序执行序列和程序出口。但是线程不能独立执行，必须依存在应用程序中，由应用程序提供多个线程执行控制，两者均可并发执行
+
+
+
+![image-20210817140301495](Java多线程.assets/image-20210817140301495.png)
 
 
 ### 什么是上下文切换?
@@ -682,13 +840,186 @@ Dump文件是进程的内存镜像。可以把程序的执行状态通过调试�
 
 - as-if-serial语义保证单线程内程序的执行结果不被改变，happens-before关系保证正确同步的多线程程序的执行结果不被改变。
 - as-if-serial语义给编写单线程程序的程序员创造了一个幻境：单线程程序是按程序的顺序来执行的。happens-before关系给编写正确同步的多线程程序的程序员创造了一个幻境：正确同步的多线程程序是按happens-before指定的顺序来执行的。
-
 - as-if-serial语义和happens-before这么做的目的，都是为了在不改变程序执行结果的前提下，尽可能地提高程序执行的并行度。
-  
+
+
+
+## 强软弱虚四种引用
+
+### 强
+
+```java
+M m = new M();
+```
+
+GC回收会执行对象的finalize方法
+
+### 软
+
+SoftReference
+
+内存不够了 删除软引用, 适合做缓存
+
+![image-20210817124729430](Java多线程.assets/image-20210817124729430.png)
+
+
+
+### 弱
+
+WeakReference
+
+执行GC就回收弱引用
+
+![image-20210817125537766](Java多线程.assets/image-20210817125537766.png)
+
+### 虚引用
+
+PhantomReference
+
+get不到虚引用
+
+作用: 管理堆外内存
+
+- JVM DirectByteBuffer分配的内存在JVM堆外, 
+- JVM内没有指向DBB的时候, 需要回收这块区域, 和他关联的堆外内存需要同时回收
+- 对这样的对象挂一个虚引用, 对象被回收的时候, 这个虚引用被放入一个Queue, 这个Queue有虚引用就会去回收这个虚引用对应的堆外内存
+
+![image-20210817130012076](Java多线程.assets/image-20210817130012076.png)
+
+
+
+
+
+## ThreadLocal
+
+rl->ThreadLocal 强引用
+
+key->ThreadLocal 弱引用
+
+ThreadLocal删除后, key=null  这条记录无法被访问了, 所以需要remove 否则产生内存泄露
+
+![image-20210817132916575](Java多线程.assets/image-20210817132916575.png)
+
+线程有一个ThreadLocalMap 
+
+- key = ThreadLocal 
+- value = 对象
+
+new一个ThreadLocal 调用set(对象) 就把 创建的ThreadLocal 和 对象放入到Thread的map里, 这样这个对象就是线程私有, 因为存到到了线程局部变量的map中
+
+- 这时候会有一个强引用指向 new出来的ThreadLocal对象
+- 调用ThreadLocalMap.set方法将 ThreadLocal-value pair放入map的时候实际上创建了Entry<key,value> 放入map
+- 但是这个Entry继承了WeakReference 这个key是一个弱引用指向new 出来的ThreadLocal key
+
+这时候会存在内存泄露的问题
+
+- 当强引用不在指向new 出来的ThreadLocal对象被垃圾回收的时候, map里的弱引用指向了null 
+- 那么ThreadLocalMap中的这条记录 null-value就无法被访问, 
+- 所以需要remove掉这条记录, 否则这个value对象就无法释放, 导致内存泄露
+
+为什么ThreadLocal中的key要是弱引用
+
+- 否则new ThreadLocal时的强引用释放的时候, 还有一个ThreadLocal中的key强引用指向这个ThreadLocal对象, 对象无法被释放造成内存泄露
+
+
+
+![image-20210817131849153](Java多线程.assets/image-20210817131849153.png)
+
+![image-20210817132006076](Java多线程.assets/image-20210817132006076.png)
+
+
+
+![image-20210817132037752](Java多线程.assets/image-20210817132037752.png)
+
+
+
+
+
+
 
 ## 并发关键字
 
+### 对象在内存中的存储布局
+
+![image-20210817101039208](Java多线程.assets/image-20210817101039208.png) 
+
+对象头8字节, 
+
+类型指针压缩情况下4字节, 不压缩8字节
+
+实例数据具体情况
+
+padding 如果不能被8整除需要补齐
+
+#### 对象头 markword 8字节
+
+- 锁, synchronized信息
+
+#### 类型指针 class  pointer 4字节
+
+- 这个对象属于哪个class类
+
+#### 实例数据
+
+- 数据, 一个int 占4个字节
+
+#### 对齐 padding
+
+- 如果这个对象字节数不能被8整除, 补到能被8整除, 
+- CPU读取按照总线长度 8个字节, 这样读取效率高
+
+
+
+
+
+
+
 ### synchronized
+
+#### 锁升级 markword存储变化
+
+new 偏向锁 轻量级锁 (无锁, 自旋锁, 自适应自旋) 重量级锁
+
+- 偏向锁
+  - 第一个使用这个对象的线程, markword中存储了这个线程的指针表示这个对象偏向了这个线程
+- 轻量级锁
+  - 发生任意竞争, 这个锁升级为轻量级锁
+  - 撤销偏向锁, 
+  - 每个抢锁的线程在自己的线程栈生成lockrecord 并把自己的LR 放到对象的对象头里 使用CAS的方式上锁
+  - 谁成功了谁就拥有了这个轻量级锁, 即对象头有了一个指针指向了拿到锁的线程栈中的LR
+  - 存在于用户态, 不需要系统调用, 但是这个是一个while循环, 竞争激烈, 导致太多线程自旋, 占用太多CPU资源
+- 重量级锁
+  - 竞争加剧, 自旋次数到达一定次数, JVM判定升级为重量级锁
+  - markword存储的指向内核态的mutex互斥锁
+  - 每一把锁都有一个队列, 等待拿锁的线程进入锁的队列, 但是不消耗任何CPU资源
+
+![image-20210817102546165](Java多线程.assets/image-20210817102546165.png)
+
+#### 锁清除
+
+锁消除是指虚拟机即时编译器在运行时，对一些代码要求同步，但是**对被检测到不可能存在共享数据竞争的锁进行消除**。
+
+#### 锁粗化
+
+原则上，我们在编写代码的时候，总是推荐将同步块的作用范围限制得尽量小——只在共享数据的实际作用域中才进行同步，
+
+这样是为了使得需要同步的操作数量尽可能变少，即使存在锁竞争，等待锁的线程也能尽可能快地拿到锁。
+
+大多数情况下，上面的原则都是正确的，但是如果一系列的连续操作都对同一个对象反复加锁和解锁，甚至加锁操作是出现在循环体之中的，
+
+那即使没有线程竞争，频繁地进行互斥同步操作也会导致不必要的性能损耗
+
+![image-20210817105615869](Java多线程.assets/image-20210817105615869.png)
+
+
+
+#### synchronized实现原理
+
+
+
+
+
+
 
 #### synchronized 的作用？
 
@@ -882,6 +1213,80 @@ Java中每一个对象都可以作为锁，这是synchronized实现同步的基�
 
 ### volatile
 
+![image-20210817112321618](Java多线程.assets/image-20210817112321618.png)
+
+
+
+#### 超线程
+
+![image-20210817112655959](Java多线程.assets/image-20210817112655959.png)
+
+
+
+#### 缓存行 cache line
+
+- 读取数据 内存->L3 -> L2 -> L1
+- 局部性原理, 读取了x可能马上就会用x后面的数据
+- 读取数据按块读, 一次读一个缓存行 64字节
+- 如果两个volatile修饰的变量存在于一个缓存行, 不同的线程再对于两个变量做修改的时候每次都需要通知另一个线程这个缓存行已经修改了, 需要取内存中读取最新的数据才可以读到最新的数据, 这样会降低相率, 
+- CPU的可见性是以一个缓存行为单位的
+
+![image-20210817113043212](Java多线程.assets/image-20210817113043212.png)
+
+
+
+#### CPU乱序执行
+
+- CPU速度很快
+- 两条指令间没有依赖关系
+  - 第一条指令需要取磁盘读一个数据, 很慢
+  - 等到的时间可以先执行第二条指令,导致原本应该第二条执行的指令第一执行了
+- 
+
+![image-20210817114347524](Java多线程.assets/image-20210817114347524.png)
+
+
+
+#### DCL是否需要加volatile?
+
+- 对象的创建过程
+  1. 在堆分配对象(markword, class pointer, 数据, padding), 对象的值为默认值0 null ,
+  2. 在栈上分配成员变量
+  3. 调用类的构造方法, 初始化对象的指定初始值
+  4. 将栈上的成员变量指向堆上的对象
+- 为什么需要volatile
+  1. 线程1new 对象 申请堆中的内存, 变量赋默认值 0 null
+  2. 这时发生了指令重排序
+  3. 先建立了栈上变量与堆中对象的关系
+  4. 线程2 进入判断对象是否为空, 这时不为空, 因为已经建立了栈上成员变量与堆上对象的关系
+  5. 但是栈上成员变量实际指向的是一个半初始化状态的对象,使用的时候会发生空指针异常或者数据不一致
+  6. 再调用构造方法给成员变量赋初始值
+
+![image-20210817120056486](Java多线程.assets/image-20210817120056486.png)
+
+
+
+![image-20210817120712576](Java多线程.assets/image-20210817120712576.png)
+
+
+
+#### 内存屏障
+
+![image-20210817121753970](Java多线程.assets/image-20210817121753970.png)
+
+
+
+- volatile写操作
+  - 之前的store操作执行完毕
+  - volatile写操作完成后续的读可见
+- volatile读操作
+  - 之前load操作执行完毕
+  - volatile读操作完成以后后续的store操作才可以执行
+
+![image-20210817122147697](Java多线程.assets/image-20210817122147697.png)
+
+
+
 #### volatile 关键字的作用
 
 - 对于可见性，Java 提供了 volatile 关键字来保证**可见性和禁止指令重排**。
@@ -1027,6 +1432,12 @@ Lock 接口比同步方法和同步块提供了更具扩展性的锁操作。他
 
 #### 什么是 CAS
 
+```assembly
+LOCK_IF_MP(mp) cmpxchg
+```
+
+lock: 当执行后面的cmpxchg指令的时候, 不允许其他cpu对这个值做更改
+
 CAS 是 compare and swap 的缩写，即我们所说的比较交换。
 
 - cas 是一种基于锁的操作，而且是乐观锁。在 java 中锁分为乐观锁和悲观锁。
@@ -1109,8 +1520,20 @@ CAS 是 compare and swap 的缩写，即我们所说的比较交换。
 
 锁可以升级但不能降级。
 
-
 ### AQS(AbstractQueuedSynchronizer)详解与源码分析
+
+- CAS +volatile
+- State遍历是volatile修饰, 表示是否上锁的判断
+- 设置state 没有获取到锁的线程封装成Node结点入同步队列的过程都是CAS
+- 所以核心就是CAS+volatile
+
+
+
+
+
+
+
+
 
 #### 队列同步AQS
 
@@ -1128,7 +1551,7 @@ CAS 是 compare and swap 的缩写，即我们所说的比较交换。
 
 - 使用者需要继承同步器并重写指定的方法，随后将同步器组合在自定义同步组件的实现中，并调用同步器提供的模板方法，而这些模板方法将会调用使用者重写的方法
 - 重写同步器指定的方法时，需要使用同步器提供的如下3个方法来访问或修改同步状态。
-  - getState()：获取当前同步状态。
+  - getState()：获取当前同步状态。 volatile修饰state
   - setState(int newState)：设置当前同步状态。
   - compareAndSetState(int expect,int update)：使用CAS设置当前状态，该方法能够保证状态
     设置的原子性。
@@ -1284,6 +1707,18 @@ CAS 是 compare and swap 的缩写，即我们所说的比较交换。
 - 被唤醒后的线程，将从await()方法中的while循环中退出（isOnSyncQueue(Node node)方法返回true，节点已经在同步队列中），进而调用同步器的acquireQueued()方法加入到获取同步状态的竞争中。
 - 成功获取同步状态（或者说锁）之后，被唤醒的线程将从先前调用的await()方法返回，此时该线程已经成功地获取了锁。
 - Condition的signalAll()方法，相当于对等待队列中的每个节点均执行一次signal()方法，效果就是将等待队列中所有节点全部移动到同步队列中，并唤醒每个节点的线程。
+
+
+
+### LockSupport
+
+- park()
+  - 当前线程阻塞, 无需上锁, wait() 必须在同步代码块中才可以
+- unpark()
+  - 传入线程对象参数, 就可以指定线程停止阻塞继续运行
+  - unpark()可以先于park()调用, 并且可以让park()阻塞取消
+
+
 
 
 
@@ -1542,8 +1977,27 @@ BlockingQueue 接口是 Queue 的子接口，它的主要用途并不是作为�
 
 阻塞队列使用最经典的场景就是 socket 客户端数据的读取和解析，读取数据的线程不断将数据放入队列，然后解析线程不断从队列取数据解析。
 
-
 ## 线程池
+
+### 七大参数
+
+
+
+
+
+
+
+
+
+
+
+### CompleteableFuture
+
+### 工作线程数 设置多少合适
+
+![image-20210817230338277](Java多线程.assets/image-20210817230338277.png)
+
+
 
 ### Executors类创建四种常见线程池
 
@@ -1598,27 +2052,27 @@ BlockingQueue 接口是 Queue 的子接口，它的主要用途并不是作为�
 
 - 所以创建一个线程池是个更好的的解决方案，因为可以限制线程的数量并且可以回收再利用这些线程。利用Executors 框架可以非常方便的创建一个线程池。
 
+#### Executor VS ExecutorService VS Executors
 
-#### 在 Java 中 Executor 和 Executors 的区别？
+- Executor vs ExecutorService 
 
-- Executors 工具类的不同方法按照我们的需求创建了不同的线程池，来满足业务的需求。
+  1. ExecutorService 接口继承了 Executor 接口，是 Executor 的子接口
+  2. Executor 接口定义了 execute()方法用来接收一个Runnable接口的对象，而 ExecutorService 接口中的 submit()方法可以接受Runnable和Callable接口的对象。
+  3. Executor 中的 execute() 方法不返回任何结果，而 ExecutorService 中的 submit()方法可以通过一个 Future 对象返回运算结果。
+  4. 除了允许客户端提交一个任务，ExecutorService 还提供用来控制线程池的方法。比如：调用 shutDown() 方法终止线程池。
 
-- Executor 接口对象能执行我们的线程任务。
+- Executors 类提供工厂方法用来创建不同类型的线程池。
 
-- ExecutorService 接口继承了 Executor 接口并进行了扩展，提供了更多的方法我们能获得任务执行的状态并且可以获取任务的返回值。
-
-- 使用 ThreadPoolExecutor 可以创建自定义线程池。
-
-- Future 表示异步计算的结果，他提供了检查计算是否完成的方法，以等待计算的完成，并可以使用 get()方法获取计算的结果。
+  
+  
 
 
 #### 线程池中 submit() 和 execute() 方法有什么区别？
 
 - 接收参数：execute()只能执行 Runnable 类型的任务。submit()可以执行 Runnable 和 Callable 类型的任务。
-
 - 返回值：submit()方法可以返回持有计算结果的 Future 对象，而execute()没有
-
 - 异常处理：submit()方便Exception处理
+- submit 异步有返回值 execute同步无返回值
 
 
 #### 什么是线程组，为什么在 Java 中不推荐使用？
