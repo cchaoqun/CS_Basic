@@ -57,6 +57,96 @@ public class A1B2_wait_notify {
 
 
 
+## 交替打印
+
+```java
+package A_MultiThread;
+
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+/**
+ * @author Chaoqun Cheng
+ * @date 2021-08-2021/8/18-22:00
+ */
+
+public class TakeTurn {
+    public static void main(String[] args) {
+        Number1 number = new Number1();
+        Thread t1 = new Thread(number, "线程1");
+        Thread t2 = new Thread(number, "线程2");
+        t1.start();
+        t2.start();
+
+    }
+}
+
+//notify wait()
+class Number implements Runnable{
+
+    private int i = 0;
+
+    @Override
+    public void run() {
+        while(true){
+            synchronized (this){
+                notify();
+                if(i<100){
+                    i++;
+                    System.out.println(Thread.currentThread().getName()+"---"+i);
+                }else{
+                    break;
+                }
+                try {
+                    wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+}
+
+//lock condition
+class Number1 implements Runnable{
+    private int i = 0;
+    private Lock lock = new ReentrantLock();
+    private Condition condition = lock.newCondition();
+
+    @Override
+    public void run(){
+        while(true){
+            lock.lock();
+            try{
+                condition.signal();
+                if(i<100){
+                    i++;
+                    System.out.println(Thread.currentThread().getName()+"---"+i);
+                }else{
+                    break;
+                }
+                condition.await();
+            }catch(Exception e){
+
+            }finally {
+                lock.unlock();
+            }
+        }
+    }
+
+}
+
+```
+
+
+
+
+
+
+
+
+
 ## 2消费者10生产者 固定容器
 
 ```java
@@ -1915,7 +2005,7 @@ Thread-1 : ThreadLocal num=5
 - ArrayBlockingQueue：一个由数组结构组成的有界阻塞队列。
   - ArrayBlockingQueue是一个用数组实现的有界阻塞队列。此队列按照先进先出（FIFO）的原则对元素进行排序。
   - 默认情况下不保证线程公平的访问队列，所谓公平访问队列是指阻塞的线程，可以按照阻塞的先后顺序访问队列，即先阻塞线程先访问队列
-- LinkedBlockingQueue：一个由链表结构组成的有界阻塞队列。
+- LinkedBlockingQueue：一个由链表结构组成的无界阻塞队列。
   - LinkedBlockingQueue用链表实现的有界阻塞队列。此队列的默认和最大长度为Integer.MAX_VALUE。此队列按照先进先出的原则对元素进行排序。
 - PriorityBlockingQueue：一个支持优先级排序的无界阻塞队列。
   - PriorityBlockingQueue是一个支持优先级的无界阻塞队列。

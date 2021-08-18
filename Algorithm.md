@@ -4758,6 +4758,61 @@ public boolean canJump(int[] nums) {
 
 # 回文
 
+## 回文子串
+
+### 5. 最长回文子串
+
+[5. 最长回文子串](https://leetcode-cn.com/problems/longest-palindromic-substring/)
+
+- dp\[i][j]  表示s[i:j] 是否是回文串
+  - 如果 s[i]==s[j] 取决于s[i+1,j-1]是否是回文串
+  - 如果s[i] != s[j] 一定不是回文串
+- i从len-2开始, j从i+1开始向外扩散, 保证每个字符串内部的字符串中间是否是回文串已经确定了
+- 对角线的单个元素一定是回文串
+
+
+
+
+
+```java
+public String longestPalindrome(String s) {
+    if(s==null || s.length()==0 || s.length()==1){
+        return s;
+    }
+    int len = s.length();
+    int[] res = new int[2];
+    int max = 0;
+    boolean[][] dp = new boolean[len][len];
+    for(int i=0; i<len; i++){
+        dp[i][i] = true;
+    }
+    for(int i=len-2; i>=0; i--){
+        for(int j=i+1; j<len; j++){
+            if(s.charAt(i)!=s.charAt(j)){
+                continue;
+            }
+            if(s.charAt(i)==s.charAt(j)){
+                if(j==i+1){
+                    dp[i][j] = true;
+                }else{
+                    dp[i][j] = dp[i+1][j-1];
+                }
+            }
+            if(dp[i][j] && j-i+1>max){
+                res[0] = i;
+                res[1] = j;
+                max = j-i+1;
+            }
+        }
+    }
+    return s.substring(res[0], res[1]+1);
+}
+```
+
+
+
+
+
 
 
 ## 9. 回文数
@@ -4772,7 +4827,19 @@ public boolean isPalindrome(int x) {
     String reversedStr = (new StringBuilder(x + "")).reverse().toString();
     return (x + "").equals(reversedStr);
 }
-
+//双指针
+public boolean isPalindrome(int x) {
+    String rever = String.valueOf(x);
+    int i = 0, j = rever.length()-1;
+    while(i<j){
+        if(rever.charAt(i)!=rever.charAt(j)){
+            return false;
+        }
+        i++;
+        j--;
+    }
+    return true;
+}
 
 
 //通过取整和取余操作获取整数中对应的数字进行比较。
