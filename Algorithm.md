@@ -752,6 +752,94 @@ private int findMax(int[] num, int target){
 }
 ```
 
+### 221. 最大正方形
+
+[221. 最大正方形](https://leetcode-cn.com/problems/maximal-square/)
+
+- 思路
+  - 按层压缩, 当前压缩了n层, 找到连续的n个n就找到了一个正方形
+
+![image-20210819221106295](Algorithm.assets/image-20210819221106295.png)
+
+
+
+```java
+public int maximalSquare(char[][] matrix) {
+    if(matrix==null || matrix.length==0 || matrix[0].length==0){
+        return 0;
+    }
+    int m = matrix.length, n = matrix[0].length;
+    int max = Math.max(m,n);
+    int side = 0;
+    //枚举每一层
+    for(int i=0; i<m; i++){
+        int[] num = new int[n];
+        //压缩
+        for(int j=i; j<m; j++){
+            for(int k=0; k<n; k++){
+                num[k] += matrix[j][k]=='1'?1:0;
+            }
+            //压缩完一层, 查看是否有
+            if(findSquare(num, j-i+1)){
+                side = Math.max(side, j-i+1);
+                if(side==max){
+                    return side*side;
+                }
+            }
+        }
+    }
+    return side*side;
+}
+
+//找到连续的level个level 返回true
+private boolean findSquare(int[] num, int level){
+    int cnt = 0;
+    for(int i=0; i<num.length; i++){
+        if(num[i]<level){
+            cnt = 0;
+            continue;
+        }
+        cnt++;
+        if(cnt == level){
+            return true;
+        }
+    }
+    return false;
+}
+
+//dp
+public int maximalSquare(char[][] matrix){
+    if(matrix==null || matrix.length==0 || matrix[0].length==0){
+        return 0;
+    }
+    int m = matrix.length, n = matrix[0].length;
+    int side = 0;
+    int[][] dp = new int[m][n];
+    for(int i=0; i<m; i++){
+        for(int j=0; j<n; j++){
+            if(matrix[i][j]=='1'){
+				if(i==0 || j==0){
+                    dp[i][j] = 1;
+                }
+                else{
+                    dp[i][j] = Math.min(dp[i-1][j], Math.min(dp[i][j-1], dp[i-1][j-1]))+1;
+                }
+                side = Math.max(dp[i][j], side);
+            }
+        }
+    }
+    return s
+}
+```
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2958,6 +3046,48 @@ public ListNode removeNthFromEnd(ListNode head, int n) {
 
 
 # Tree
+
+## 验证二叉搜索树
+
+### 98. 验证二叉搜索树
+
+[98. 验证二叉搜索树](https://leetcode-cn.com/problems/validate-binary-search-tree/)
+
+- 中序遍历
+  - 维护全局变量 Integer prev 表示前一个结点的值
+  - 中序遍历二叉树
+  - 如果prev!=null 并且prev>=node.val说明当前中序遍历的结果不是升序的, 返回false
+  - 每个结点返回 左右子节点递归的结果, 必须全部是true才返回true
+
+![image-20210819214458158](Algorithm.assets/image-20210819214458158.png)
+
+
+
+```java
+Integer prev;
+public boolean isValidBST(TreeNode root) {
+    if(root==null){
+        return true;
+    }
+    return check(root);
+
+}
+
+private boolean check(TreeNode node){
+    if(node==null){
+        return true;
+    }
+    boolean left = check(node.left);
+    if(prev!= null && prev>=node.val){
+        return false;
+    }
+    prev = node.val;
+    boolean right = check(node.right);
+    return left && right;
+}
+```
+
+
 
 ## 二叉树特征值
 
@@ -5179,6 +5309,64 @@ public int mySqrt(int n){
 
 
 
+## 33. 搜索旋转排序数组
+
+[33. 搜索旋转排序数组](https://leetcode-cn.com/problems/search-in-rotated-sorted-array/)
+
+- 二分查找
+  - 找到区间中点
+  - nums[mid] = target 直接返回
+  - 如果中点>nums[0] 说明nums[0:mid] 处于第一个上升的区间
+    - 如果target 位于nums[0] 和 nums[mid] 之间 r = mid-1 因为nums[mid] != target
+    - 否则 l = mid+1
+  - 如果中点<nums[0] 说明nums[mid] 处于第二个上升的区间
+    - 如果target 位于 nums[mid] nums[n-1]之间 l = mid+1 
+    - 否则 r = mid-1
+
+
+
+![image-20210819213812499](Algorithm.assets/image-20210819213812499.png)
+
+```java
+public int search(int[] nums, int target) {
+    int n = nums.length;
+    if(n==0){
+        return -1;
+    }
+    if(n==1){
+        return nums[0]==target?0:-1;
+    }
+    int l = 0, r = n-1;
+    while(l<=r){
+        int mid = (l+r)>>>1;
+        if(nums[mid]==target){
+            return mid;
+        }
+        else if(nums[0]<=nums[mid]){
+            if(nums[0]<=target && target<nums[mid]){
+                r = mid-1;
+            }else{
+                l = mid+1;
+            }
+        }else{
+            if(nums[mid]<target && target<=nums[n-1]){
+                l = mid+1;
+            }else{
+                r = mid-1;
+            }
+        }
+
+    }
+    return -1;
+
+}
+
+```
+
+
+
+
+
 # Rand转换
 
 1. 题目给你一个等概率函数，你可以把他转换为一个等概率返回0和1的函数rand01();
@@ -5206,6 +5394,12 @@ class Solution extends SolBase {
 }
 
 ```
+
+
+
+
+
+
 
 
 
