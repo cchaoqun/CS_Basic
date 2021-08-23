@@ -752,6 +752,10 @@ private int findMax(int[] num, int target){
 }
 ```
 
+
+
+## 连续的1的数组, 矩阵, 正方形
+
 ### 221. 最大正方形
 
 [221. 最大正方形](https://leetcode-cn.com/problems/maximal-square/)
@@ -831,6 +835,24 @@ public int maximalSquare(char[][] matrix){
     return s
 }
 ```
+
+
+
+### 485. 最大连续 1 的个数
+
+[485. 最大连续 1 的个数](https://leetcode-cn.com/problems/max-consecutive-ones/)
+
+
+
+### 487. 最大连续1的个数 II
+
+[487. 最大连续1的个数 II](https://leetcode-cn.com/problems/max-consecutive-ones-ii/)
+
+
+
+### 562. 矩阵中最长的连续1线段
+
+[562. 矩阵中最长的连续1线段](https://leetcode-cn.com/problems/longest-line-of-consecutive-one-in-matrix/)
 
 
 
@@ -5980,6 +6002,133 @@ class MyQueue {
 
 
 
+# 染色问题
+
+## 785. 判断二分图
+
+[785. 判断二分图](https://leetcode-cn.com/problems/is-graph-bipartite/)
+
+- dfs
+
+  - 枚举每一个结点, 如果这个结点没有被访问过, 尝试将这个结点设置为指定color 并且dfs搜索他的邻居
+
+  - dfs过程, 对于每一个点, 
+
+    - 如果已经访问过, 查看当前准备设置这个点的值是否和这个点访问过以后设置的颜色相等, 
+      - 不同返回false
+      - 相同返回true
+    - 如果没有访问过, mark visited 设置为指定的color
+    - 遍历这个点的所有邻居并且尝试将其设置为color*-1代表相反的颜色
+      - 如果可以设置成功, 继续设置下一个邻居
+      - 如果不能设置成功返回false
+    - 所有邻居都设置成功, 返回true
+
+    
+
+![image-20210821101211949](Algorithm.assets/image-20210821101211949.png)
+
+```java
+private static final int color = 1;
+/**
+    visited[i] = 0 not visited
+    visited[i] = 1 colored 1
+    visited[i] = -1 colorer -1
+     */
+public boolean isBipartite(int[][] graph) {
+    if(graph==null || graph.length==0 ){
+        return false;
+    }
+    int n = graph.length;
+    //染色+判断是否访问过
+    int[] visited = new int[n];
+    for(int i=0; i<n; i++){
+        //枚举每个点, 没有访问过的dfs设置color=1 
+        if(visited[i]==0 && !dfs(i, color, visited, graph)){
+            return false;
+        }
+    }
+    return true;
+}
+
+private boolean dfs(int index, int color, int[] visited, int[][] graph){
+    //当前index点已经访问过了
+    if(visited[index]!=0){
+        //判断color和现在要设置的color是否相同, 不相同说明不能成立
+        return visited[index]==color;
+    }
+    //当前点还没有染色, 染色成指定的颜色
+    visited[index] = color;
+    //dfs遍历邻居, 设置成相反的颜色
+    for(int nei : graph[index]){
+        //不能染色说明不行
+        if(!dfs(nei, -1*color, visited, graph)){
+            return false;
+        }
+    }
+    return true;
+
+}
+```
+
+
+
+# Union Find
+
+https://www.bilibili.com/video/BV19L411t7a8?p=11
+
+
+
+```java
+//元素都封装成一个类
+private static class Element<V>{
+    V value;
+    public Element(V value){
+        this.value = value;
+    }
+}
+
+public static class UnionFindSet<V>{
+    //对于每个元素的值, 封装成一个类Element, 元素值-元素封装类 pair
+    public HashMap<V, Element<V>> elementMap;
+    //每个结点对应的父节点, 指针通过key-val键值对表示, key: 这个结点, val:这个结点的父节点
+    public HashMap<Element<V>, Element<V>> fatherMap;
+    //每个集合的结点个数, 用集合的最顶点结点表示, 一个集合只有一个key
+    public HashMap<Element<V>, Integer> sizeMap;
+    
+    //构造函数要求传入数据集
+    public UnionFindSet(List<V> list){
+        elementMap = new HashMap<>();
+        fatherMap = new HashMap<>();
+        sizeMap = new HashMao<>();
+        for (V value : list){
+            //创建元素对应的包装类结点
+            Element<V> element = new Element<>(value);
+           	//元素值-元素值对应的封装类
+			elementMap.put(value, element);
+            //一开始每个结点的父节点都是自己
+            fatherMap.put(element, element);
+            //每个结点都是一个集合, 元素都是1
+            sizeMap.put(element, 1);
+        }
+    }
+    
+    //查看两个元素是否在同一集合
+    public boolean isSameSet(V a, V b){
+        //首先保证集合有这两个元素
+        if(elementMap.containsKey(a) && elementMap.containsKey(b)){
+            //查看两个元素对应的集合顶点元素是否
+            return findHead(elementMap.get(a)) == findHead(elementMap.get(b));
+        }
+    }
+}
+```
+
+
+
+
+
+
+
 # TOP300
 
 ## 4. 寻找两个正序数组的中位数
@@ -6115,5 +6264,163 @@ https://www.cnblogs.com/xiaoxiao075/p/10351122.html
 ## 第 254 场周赛
 
 ```java
+滑铁卢 太菜了!!!
+```
+
+
+
+## 第255场周赛
+
+### \5850. 找出数组的最大公约数
+
+```
+public int findGCD(int[] nums) {
+        if(nums==null || nums.length==0 ){
+            return 0;
+        }
+        int min = Integer.MAX_VALUE;
+        int max = Integer.MIN_VALUE;
+        for(int i=0; i<nums.length; i++){
+            min = Math.min(min, nums[i]);
+            max = Math.max(max, nums[i]);
+        }
+        if(min==0){
+            return 0;
+        }
+        return gcd(min, max);
+    }
+    
+    
+    
+    /**
+    grd(a, b) = gcd(b, a % b);
+    3 8 
+    8 3
+    3 2
+    2 1
+    1 0
+    
+    6 9
+    9 6
+    6 3
+    3 
+    */
+    int gcd(int a, int b){
+        if(b==0){
+            return a;
+        }
+        if(b%a==0){
+            return a;
+        }
+        return gcd(b, a%b);
+    }
+```
+
+
+
+### 
+
+```java
+public String findDifferentBinaryString(String[] nums) {
+        Arrays.sort(nums);
+        int n = nums.length;
+        String res = "";
+        if(convertToDec(nums[0])!=0){
+            while(n>0){
+                res = res + "0";
+                n--;
+            }
+            return res;
+        }
+        
+        for(int i=0; i<n-1; i++){
+            String cur = nums[i];
+            String next = nums[i+1];
+            int curVal = convertToDec(cur);
+            int nextVal = convertToDec(next);
+            if(curVal==nextVal){
+                continue;
+            }
+            if(curVal+1!=nextVal){
+                res = convertToBin(curVal+1);
+                break;
+            }
+        }
+        if(res.length()==0){
+            res = convertToBin(convertToDec(nums[n-1])+1);
+        }
+        while(res.length()<n){
+            res = "0"+res;
+        }
+        return res;
+        
+        
+    }
+    
+    private String convertToBin(int num){
+        StringBuffer sb = new StringBuffer();
+        while(num>0){
+            if((num&1)==1){
+                sb.insert(0, '1');                
+            }else{
+                sb.insert(0, '0');
+            }
+            num >>>= 1;
+        }
+        return sb.toString();
+    }
+    
+    private int convertToDec(String str){
+        int len = str.length();
+        int res = 0;
+        for(int i=len-1; i>=0; i--){
+            if(str.charAt(i)=='1'){
+                res = res+(1<<len-1-i);
+            }
+        }
+        return res;
+    }
+```
+
+### 
+
+```java
+int m;
+int n;
+//所有的值都是70 最大和70*70 = 4900
+int N = 5000;
+int[][] mat;
+Integer[][] memo;
+int INF = Integer.MAX_VALUE;
+public int minimizeTheDifference(int[][] mat, int target) {
+    if(mat==null || mat.length==0 || mat[0].length==0){
+        return target;
+    }
+    this.mat = mat;
+    m = mat.length;
+    n = mat[0].length;
+    memo = new Integer[m+1][5000*2];
+    int row = m;
+    return backtrack(row, target);
+
+}
+
+private int backtrack(int row,   int target){
+    if(row==0){
+        return Math.abs(target);
+    }
+    //到达row行, 需要的目标为target 这种情况之前遍历过, 所以直接返回最优值
+    if(memo[row][target+N]!=null){
+        return memo[row][target+N];
+    }
+    int curVal = INF;
+    //找到这个target 对应的这一行应该选择的最优值
+    for(int i=0; i<n; i++){
+        curVal = Math.min(curVal,backtrack(row-1, target-mat[row-1][i]));
+    }
+    //记录这个最优值, +N是防止target变成了负数
+    memo[row][target+N] = curVal;
+    return curVal;
+}
 ```
 
