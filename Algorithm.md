@@ -2018,11 +2018,20 @@ public int largestRectangleArea(int[] heights){
 
 [42. 接雨水](https://leetcode-cn.com/problems/trapping-rain-water/)
 
-- 思路
+- 思路一 : 双指针
   - 维护双指针, 左右最大值
   - 双指针位置更新左到左指针位置的最大值, 右到右指针位置的最大值
   - 最大值小的那个, 对应边位置可以接的雨水可以确定, 即两边较小的高度-指针指向的高度
   - 较小的指针向中间移动, 较大的不动
+- 思路二: 单调栈
+  - 维护单点递减栈
+  - 栈中为height数组的下标, 下标对应的元素从栈底到栈顶是单调递减的
+  - 当前下标对应高度大于栈顶下标对应的高度的时候, 栈顶下标出栈
+    - 如果栈空说明出栈元素没有左边界, 无法接雨水, 跳出循环
+    - 如果如果栈非空, 当前栈顶的下边对应高度一定大于出栈下标对应的高度
+      - 那当前可接雨水的矩形宽度为 i-leftBound+1
+      - 高度为 左右边界较短的 Math.min(height[i], height[leftBound])-height[curTop]
+      - res += width*height
 
 ![image-20210805150712752](Algorithm.assets/image-20210805150712752.png)
 
@@ -2030,36 +2039,41 @@ public int largestRectangleArea(int[] heights){
 //双指针
 双指针法真的妙，那么如何理解双指针法呢？听我来给你捋一捋。（捋的过程和原解中的C++在细节方面的处理是有出入的）
 
-我们先明确几个变量的意思：
+    我们先明确几个变量的意思：
 
-left_max：左边的最大值，它是从左往右遍历找到的
-right_max：右边的最大值，它是从右往左遍历找到的
-left：从左往右处理的当前下标
-right：从右往左处理的当前下标
-定理一：在某个位置i处，它能存的水，取决于它左右两边的最大值中较小的一个。
+    left_max：左边的最大值，它是从左往右遍历找到的
+    right_max：右边的最大值，它是从右往左遍历找到的
+    left：从左往右处理的当前下标
+    right：从右往左处理的当前下标
+    定理一：在某个位置i处，它能存的水，取决于它左右两边的最大值中较小的一个。
 
-定理二：当我们从左往右处理到left下标时，左边的最大值left_max对它而言是可信的，但right_max对它而言是不可信的。（见下图，由于中间状况未知，对于left下标而言，right_max未必就是它右边最大的值）
+    定理二：当我们从左往右处理到left下标时，左边的最大值left_max对它而言是可信的，但right_max对它而言是不可信的。（见下图，由于中间状况未知，对于left下标而言，right_max未必就是它右边最大的值）
 
-定理三：当我们从右往左处理到right下标时，右边的最大值right_max对它而言是可信的，但left_max对它而言是不可信的。
+    定理三：当我们从右往左处理到right下标时，右边的最大值right_max对它而言是可信的，但left_max对它而言是不可信的。
 
-                                   right_max
- left_max                             __
-   __                                |  |
-  |  |__   __??????????????????????  |  |
-__|     |__|                       __|  |__
-        left                      right
-对于位置left而言，它左边最大值一定是left_max，右边最大值“大于等于”right_max，这时候，如果left_max<right_max成立，那么它就知道自己能存多少水了。无论右边将来会不会出现更大的right_max，都不影响这个结果。 所以当left_max<right_max时，我们就希望去处理left下标，反之，我们希望去处理right下标。
+    right_max
+    left_max                             __
+    __                                |  |
+    |  |__   __??????????????????????  |  |
+    __|     |__|                       __|  |__
+    left                      right
+    对于位置left而言，它左边最大值一定是left_max，右边最大值“大于等于”right_max，这时候，如果left_max<right_max成立，那么它就知道自己能存多少水了。无论右边将来会不会出现更大的right_max，都不影响这个结果。 所以当left_max<right_max时，我们就希望去处理left下标，反之，我们希望去处理right下标。
 public int trap(int[] height){
     int n = height.length;
-    int l = 0, r = n-1, lmax = 0, rmax = 0;
-    int res = 0;
+    //维护双指针, lmax rmax 记录左->右当前的最大值, 左<-右的最大值
+    int l = 0, r = n-1, res = 0;
+    int lmax = 0, rmax = 0;
     while(l<r){
+        //更新左右最大值
         lmax = Math.max(lmax, height[l]);
         rmax = Math.max(rmax, height[r]);
+        //如果 lmax<rmax 当前左指针的最大可接雨水数量确定 lmax-height[l]
         if(lmax<rmax){
             res += lmax-height[l];
             l++;
-        }else{
+        }
+        //如果 lmax>rmax 当前右指针的最大可接雨水数量确定 rmax-height[r]
+        else{
             res += rmax-height[r];
             r--;
         }
@@ -2078,7 +2092,7 @@ public int trap(int[] height){
         //遇到逆序的元素
         while(!stack.isEmpty() && height[stack.peek()]<cur){
             //需要计算能接受雨水量的柱形
-			int curTop = stack.pop();
+            int curTop = stack.pop();
             //栈空 说明左边界为0 没办法接雨水,
             if(stack.isEmpty()){
                 break;
@@ -5034,6 +5048,125 @@ public boolean isPalindrome(int x) {
 
 # String Manipulation
 
+## 字符串 加 乘
+
+### 43. 字符串相乘
+
+[43. 字符串相乘](https://leetcode-cn.com/problems/multiply-strings/)
+
+- 思路
+  - num1长度为 l1 num2长度为l2, 两数相乘的长度最大为 l1+l2 
+  - num1[i] *  num2[j]
+    - 最多是一个两位数
+    - 并且在最后结果 的 i+j(十位) i+j+1个位
+  - 创建长度为 l1+l2+1的int数组
+  - 将num2的每个字符从右到左依次和num1的从右到左每个字符相乘得到的结果放入数组中对应的两个位置中
+  - 每个位置都可能>10, 从右到左依次进位
+  - 从左到右遍历数组, 从第一个不是0的位置将数字append到StringBuffer中
+
+![image-20210824211232411](Algorithm.assets/image-20210824211232411.png)
+
+```java
+public String multiply(String num1, String num2) {
+    if(num1==null || num1.length()==0){
+        return "";
+    }
+    if(num2==null || num2.length()==0){
+        return "";
+    }
+    int l1 = num1.length(), l2 = num2.length();
+    int[] res = new int[l1+l2];
+    for(int i=l2-1; i>=0; i--){
+        char cur2 = num2.charAt(i);
+        for(int j=l1-1; j>=0; j--){
+            //当前num1的字符
+            char cur1 = num1.charAt(j);
+            //两个个字符对应个位数相乘的结果
+            int curRes = (cur2-'0')*(cur1-'0');
+            //十位
+            int t1 = curRes/10;
+            //个位
+            int t2 = curRes%10;
+            //个位与对应位置相加
+            res[i+j+1] = (res[i+j+1]+t2);
+            //十位与对应位置相加
+            res[i+j] = (res[i+j]+t1);
+        }
+    }
+    //每个位置可能都是>10, 从右到左对>10的位置采取进位
+    int car = 0;
+    for(int k=res.length-1; k>=0; k--){
+        res[k] += car;
+        car = res[k]/10;
+        res[k] %= 10;
+    }
+    //忽略前导0
+    int i = 0;
+    while(i<res.length && res[i]==0){
+        i++;
+    }
+    //依次append
+    StringBuffer sb = new StringBuffer();
+    while(i<res.length){
+        sb.append(res[i]);
+        i++;
+    }
+    //判断结果是否是0
+    return sb.length()==0?"0":sb.toString();
+}
+```
+
+
+
+### 415. 字符串相加
+
+[415. 字符串相加](https://leetcode-cn.com/problems/add-strings/)
+
+- 思路
+  - 两个字符串靠右对齐, 对齐位置字符相加
+    - 结果%10为对应位置的数
+    - 结果/10为进位
+  - 如果某个字符已经遍历完了, 就用0代替
+  - 循环继续的条件是 两个字符串的index>=0 || 进位>0
+
+![image-20210824214637911](Algorithm.assets/image-20210824214637911.png)
+
+```java
+public String addStrings(String num1, String num2) {
+    int len1 = num1.length(), len2 = num2.length();
+    //两个字符右对齐
+    int index1 = len1-1;
+    int index2 = len2-1;
+    //相加的进位和余数
+    int carry = 0, rem = 0;
+    StringBuffer sb  = new StringBuffer();
+    //只要还有数可以加
+    while(index1>=0 || index2>=0 || carry >0){
+        //越界的用0代替
+        int c1 = index1>=0?num1.charAt(index1)-'0':0;
+        int c2 = index2>=0?num2.charAt(index2)-'0':0;
+        //当前三数相加的结果
+        int temp = c1+c2+carry;
+        //进位
+        carry = temp/10;
+        //余数
+        rem = temp%10;
+        sb.append(rem);
+        index1--;
+        index2--;
+    }
+    return sb.reverse().toString();
+}
+```
+
+
+
+
+
+
+
+
+
 ## 覆盖子串
 
 ### 76. 最小覆盖子串
@@ -5299,6 +5432,51 @@ private boolean match(String s, int i, int wordLen, int wordNum){
 
 # Binary Search
 
+## 剑指 Offer 04. 二维数组中的查找
+
+[剑指 Offer 04. 二维数组中的查找](https://leetcode-cn.com/problems/er-wei-shu-zu-zhong-de-cha-zhao-lcof/)
+
+- 思路
+  - 每行左到右递增, 每列从上到下递增
+  - 站在左下角 i = m-1, j = 0
+    - 如果当前数>target 这一行都>target 上移 i--
+    - 如果当前数<target, 这一列都>target 右移 j++
+
+![image-20210824215924386](Algorithm.assets/image-20210824215924386.png)
+
+```java
+public boolean findNumberIn2DArray(int[][] matrix, int target) {
+    /**
+        站在矩阵的左下角 i= m-1 j=0
+        当前元素 > target i--;
+        当前元素 < target j++;         
+        越界的时候不存在
+         */
+    if(matrix==null || matrix.length==0 ||  matrix[0].length==0){
+        return false;
+    }
+    int m = matrix.length;
+    int n = matrix[0].length;
+    int row = m-1, col = 0;
+    while(row>=0 && col<n){
+        if(matrix[row][col]==target){
+            return true;
+        }else if(matrix[row][col]<target){
+            col++;
+        }else{
+            row--;
+        }
+    }
+    return false;
+}
+```
+
+
+
+
+
+
+
 ## 69. x 的平方根
 
 [69. x 的平方根](https://leetcode-cn.com/problems/sqrtx/)
@@ -5498,6 +5676,92 @@ public int rand10() {
 
 
 # 数组
+
+## 数组排列
+
+### 31. 下一个排列
+
+[31. 下一个排列](https://leetcode-cn.com/problems/next-permutation/)
+
+![image-20210824195505127](Algorithm.assets/image-20210824195505127.png)
+
+
+
+- 思路
+
+  1. 从后向前查找第一个相邻升序的元素对 (i,j)，满足 A[i] < A[j]。此时 [j,end) 必然是降序
+
+  2. 在 [j,end) 从后向前查找第一个满足 A[i] < A[k] 的 k。A[i]、A[k] 分别就是上文所说的「小数」、「大数」
+
+  3. 将 A[i] 与 A[k] 交换
+
+  4. 可以断定这时 [j,end) 必然是降序，逆置 [j,end)，使其升序
+
+  5. 如果在步骤 1 找不到符合的相邻元素对，说明当前 [begin,end) 为一个降序顺序，则直接跳到步骤 4
+
+     
+
+```java
+public void nextPermutation(int[] nums) {
+    /**
+        从后向前找到第一个 nums[i]<nums[i+1]
+        再从后向前在区间[i+1:end]找到第一个 nums[i] < nums[j]
+        交换 nums[i] nums[j]
+        此时区间 [i+1:end]必定是降序的 
+            因为 nums[j]是从后往前第一个大于nums[i] 那么 nums[i] > nums[j+1:end] 所有的数
+            [i+1:end]降序, nums[j]>nums[i] nums[j-1] > nums[j] > nums[i]
+        将区间[i+1:end]翻转变成升序
+         */
+
+    int n = nums.length;
+    if(n<=1){
+        return;
+    }
+    int i = n-2;
+    //从右往左找倒第一个 nums[i]<nums[j] [j:n-1]降序
+    for( ; i>=0; i--){
+        if(nums[i]<nums[i+1]){
+            break;
+        }
+    }
+    //如果i<0 说明已经降序排列不存在下一个最大的
+    if(i<0){
+        //变成升序
+        reverse(nums, 0, n-1);
+        return;
+    }
+    //从右往左在[j:n-1]区间找到第一个 nums[i]<nums[k]
+    int k = n-1;
+    for(; k>=i+1; k--){
+        if(nums[k]>nums[i]){
+            break;
+        }
+    }
+    // System.out.println(k);
+    //交换 nums[i], nums[k]
+    swap(nums, i, k);
+    //[i+1:n-1]当前是降序的, 变成升序
+    reverse(nums, i+1, n-1);
+
+}
+
+//翻转区间[i:j]
+private void reverse(int[] nums, int i, int j){
+    while(i<j){
+        swap(nums, i, j);
+        i++;
+        j--;
+    }
+}
+
+private void swap(int[] nums, int i, int j){
+    int temp = nums[i];
+    nums[i] = nums[j];
+    nums[j] = temp;
+}
+```
+
+
 
 ## 字符串前缀
 

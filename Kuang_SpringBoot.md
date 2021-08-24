@@ -1,5 +1,7 @@
 # 总结
 
+![image-20210824192310608](Kuang_SpringBoot.assets/image-20210824192310608.png)
+
 https://blog.csdn.net/ThinkWon/article/details/104397299?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522162865061816780269816612%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=162865061816780269816612&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~top_yy~default-3-104397299.pc_search_result_control_group&utm_term=SpringBoot&spm=1018.2226.3001.4187
 
 ## SpringBoot自动配置的原理
