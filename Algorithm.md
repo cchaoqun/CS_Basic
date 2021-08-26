@@ -1930,6 +1930,212 @@ private boolean isIPV6(String str){
 
 
 
+# 组合
+
+## 零钱兑换
+
+
+
+
+
+
+
+```java
+package Algorithm_HW.Week8;
+
+import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/** number of different conis (1,5,10, 15, 25), all possible ways to pay for a target
+ * @author Chaoqun Cheng
+ * @date 2021-07-2021/7/24-12:01
+ *
+ *
+
+ *
+ *
+ *
+ *
+ */
+
+public class CombinationCoins {
+
+    @Test
+    public void test(){
+        int[] coins = new int[]{1,2,5,10, 25};
+        int target = 10;
+        List<List<Integer>> res = getPermutation(coins, target);
+        System.out.println(res);
+    }
+
+    /**
+     * 每层加一种硬币
+     * @param coins
+     * @param target
+     * @return
+     */
+    public List<List<Integer>> getPermutation(int[] coins, int target){
+        List<List<Integer>> res = new ArrayList<>();
+        if(coins==null || coins.length==0){
+            return res;
+        }
+        List<Integer> path = new ArrayList<>();
+        int index = 0;
+//        backtrackOneKindPerLevel(coins, target, index, path, res);
+//        backtrackOneCoinPerLevel(coins, target, index, path, res);
+        backtrackAllCoinPerLevel(coins, target, index, path, res);
+        return res;
+    }
+
+    /**
+     *
+     * @param coins
+     * @param target
+     * @param index 当前层加的硬币在coins数组中的索引
+     * @param path 当前已经加的硬币的集合
+     * @param res   所有可能的情况的解
+
+
+    这种解法我们对于每层的硬币都是考虑先不选 再在保证不超过target的情况下 选1,2,3,4...个coins[index]
+    所以解的顺序是先考虑coins[]后面的情况再考虑前面出现的元素
+    [[10],
+    [5, 5],
+    [2, 2, 2, 2, 2],
+    [1, 2, 2, 5],
+    [1, 1, 2, 2, 2, 2],
+    [1, 1, 1, 2, 5],
+    [1, 1, 1, 1, 2, 2, 2],
+    [1, 1, 1, 1, 1, 5],
+    [1, 1, 1, 1, 1, 1, 2, 2],
+    [1, 1, 1, 1, 1, 1, 1, 1, 2],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
+     */
+    private void backtrackOneKindPerLevel(int[] coins, int target, int index, List<Integer> path, List<List<Integer>> res){
+        //所有的硬币已经收集完了
+        if(index== coins.length){
+            //所有硬币的和刚好等于target就是一个解
+            if(target==0){
+                res.add(new ArrayList<>(path));
+            }
+            //无论如何都return
+            return;
+        }
+        //当前加的是coins[index] 所有的加法有count种 count*coins[index]<=target
+        for(int count=0; count*coins[index]<=target; count++){
+            //加count个coins[index]到path
+            for(int i=0; i<count; i++){
+                path.add(coins[index]);
+            }
+            //下一层
+            backtrackOneKindPerLevel(coins, target-count*coins[index], index+1, path, res);
+            //回到这一层删除掉之前加的count个coins[index]
+            for(int i=0; i<count; i++){
+                path.remove(path.size()-1);
+            }
+
+        }
+
+    }
+
+    /**
+     *
+     * @param coins
+     * @param target
+     * @param index 对于coins[]中index位置的coin 每一层选择加或不加, 加了下一层还可以加, 不加下一层不能加之前加过的coin
+     * @param path
+     * @param res
+    解的结果按照coins[]中出现的顺序[排列, 验证了我们总是选择完了一种硬币以后就不再考虑这个硬币了
+    [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 2],
+    [1, 1, 1, 1, 1, 1, 2, 2],
+    [1, 1, 1, 1, 1, 5],
+    [1, 1, 1, 1, 2, 2, 2],
+    [1, 1, 1, 2, 5],
+    [1, 1, 2, 2, 2, 2],
+    [1, 2, 2, 5],
+    [2, 2, 2, 2, 2],
+    [5, 5],
+    [10]]
+     */
+    private void backtrackOneCoinPerLevel(int[] coins, int target, int index, List<Integer> path, List<List<Integer>> res){
+        //所有的硬币已经收集完了
+        if(index== coins.length){
+            //所有硬币的和刚好等于target就是一个解
+            if(target==0){
+                res.add(new ArrayList<>(path));
+            }
+            //无论如何都return
+            return;
+        }
+
+        //选择加coins[index]之前需要确认当前的target大于选择的coins[index]
+        if(target-coins[index]>=0){
+            // 加 coins[index]
+            path.add(coins[index]);
+            // target-coins[index] : 总数+coins[index] 剩余目标-coins[index]
+            // index: 这一层选了coins[index] 下一层还可以选, 这个硬币还没选完
+            backtrackOneCoinPerLevel(coins, target-coins[index], index, path, res);
+            path.remove(path.size()-1);
+        }
+        // 不加 coins[index] 代表这个硬币已经选完了 后面都不能再选了
+        backtrackOneCoinPerLevel(coins, target, index+1, path, res);
+    }
+
+    /**
+     *
+     * @param coins
+     * @param target
+     * @param index 代表这一层从index开始考虑每个coin不是选或不选 而是只要能选就选, 每层只考虑当前层可以选的元素能加的都加进去
+     *              index代表的是一个挡板, 包括挡板在内后面的元素对我都是可见的但是index之前的都被板隔起来了就不能再选了
+     * @param path
+     * @param res
+    这里每层都考虑[index:]范围内的元素, 每个元素只要可以加都加进去, 并且下一层还可以加,
+    但是如果这个元素不加, 我们只是考虑这一层后面还可以加的元素,
+    所以对于每个元素没有不加这个选项, 能加就加进去然后进入下一层 下一层还可以加这个元素
+                                如果不能加, 就考虑当前层的其他元素
+    所以本质上也是吧一个元素加完了以后开始考虑下一个元素
+    这里的收集解的条件是target==0 而不是 index==coins.length
+        因为我们只考虑了coins数组范围内可以考虑的元素 选择coins[i] 下一层index还是等于i
+                                                coins[i] 不能选 我们继续考虑这一层下一个可以考虑的元素coins[i+1] 但是i始终<coins.length
+    [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 2],
+    [1, 1, 1, 1, 1, 1, 2, 2],
+    [1, 1, 1, 1, 1, 5],
+    [1, 1, 1, 1, 2, 2, 2],
+    [1, 1, 1, 2, 5],
+    [1, 1, 2, 2, 2, 2],
+    [1, 2, 2, 5],
+    [2, 2, 2, 2, 2],
+    [5, 5],
+    [10]]
+     */
+    private void backtrackAllCoinPerLevel(int[] coins, int target, int index, List<Integer> path, List<List<Integer>> res){
+        //所有硬币的和刚好等于target就是一个解,
+        if(target==0){
+            res.add(new ArrayList<>(path));
+            //无论如何都return
+            return;
+        }
+        //这一层考虑的是包括index在内的所有 [index:]范围内的元素
+        for(int i=index; i< coins.length; i++){
+            //保证可选
+            if(target-coins[i]>=0){
+                //coins[i] 只要能选就选
+                path.add(coins[i]);
+                // target-coins[index] : 总数+coins[i] 剩余目标-coins[i]
+                // index: i 这一层选了coins[i] 下一层还可以选, 这个硬币还没选完
+                backtrackAllCoinPerLevel(coins, target-coins[i], i, path, res);
+                path.remove(path.size()-1);
+            }
+        }
+    }
+
+}
+
+```
+
 
 
 
@@ -5432,6 +5638,724 @@ private boolean match(String s, int i, int wordLen, int wordNum){
 
 # Binary Search
 
+https://leetcode-cn.com/problems/binary-search/solution/er-fen-cha-zhao-xiang-jie-by-labuladong/
+
+## 寻找一个数（基本的二分搜索）
+
+```java
+int binarySearch(int[] nums, int target) {
+    int left = 0; 
+    int right = nums.length - 1; // 注意
+
+    while(left <= right) {
+        int mid = left + (right - left) / 2;
+        if(nums[mid] == target)
+            return mid; 
+        else if (nums[mid] < target)
+            left = mid + 1; // 注意
+        else if (nums[mid] > target)
+            right = mid - 1; // 注意
+    }
+    return -1;
+}
+
+```
+
+### 搜索区间 [left, right]
+
+```
+int left = 0, right = len-1;//区间左右端点 都是有效索引
+```
+
+### 循环条件 while(left<=right)
+
+- `left<=right` ` (right = len-1)`和 `left<right` `(right = len)`的区别
+  - 这二者可能出现在不同功能的二分查找中，
+  - 前者相当于两端都闭区间 `[left, right]`，
+  - 后者相当于左闭右开区间 `[left, right)`，因为索引大小为 `nums.length` 是越界的。
+  - **这个区间其实就是每次进行搜索的区间**。
+
+### 循环终止条件 left=right+1
+
+- while 循环什么时候应该终止？
+  - **搜索区间为空的时候应该终止**，意味着你没得找了，就等于没找到嘛。
+- while(left <= right) 的终止条件是 left == right + 1，
+  - 写成区间的形式就是 [right + 1, right]，或者带个具体的数字进去 [3, 2]，可见这时候区间为空，
+  - 因为没有数字既大于等于 3 又小于等于 2 的吧。所以这时候 while 循环终止是正确的，直接返回 -1 即可。
+- while(left < right) 的终止条件是 left == right，
+  - 写成区间的形式就是 [left, right]，或者带个具体的数字进去 [2, 2]，这时候区间非空，还有一个数 2，
+  - 但此时 while 循环终止了。也就是说这区间 [2, 2] 被漏掉了，索引 2 没有被搜索，如果这时候直接返回 -1 就是错误的。
+  - 需要打补丁: `return nums[left] == target ? left : -1;`
+
+### 区间中点的计算 
+
+```
+int mid = left + (right-left)/2;//防止整型溢出  等价于 (left+right)/2
+```
+
+### 如何判断 mid是否需要+1 -1
+
+- 搜索区间是两端都闭的，即 `[left, right]`
+
+- 发现索引 `mid` 不是要找的 `target` 时，
+  - 搜索 `[left, mid-1]` 或者 `[mid+1, right]`
+  - 因为 `mid` 已经搜索过，应该从搜索区间中去除。
+
+
+
+### 局限性, 无法处理target的左右边界
+
+比如说给你有序数组 nums = [1,2,2,2,3]，target 为 2，此算法返回的索引是 2，没错。
+
+但是如果我想得到 target 的左侧边界，即索引 1，或者我想得到 target 的右侧边界，即索引 3，这样的话此算法是无法处理的。
+
+这样的需求很常见，你也许会说，找到一个 target，然后向左或向右线性搜索不行吗？可以，但是不好，因为这样难以保证二分查找对数级的复杂度了。
+
+
+
+## 寻找左侧边界的二分搜索
+
+- 搜索左边界, 所以当nums[mid]>=target的时候, 一定会缩小右边界 r = mid-1;
+- 最后出循环 l = r+1 所以最后一个满足条件的可是能l, 但是l一直变大 l = mid+1 可能所有数都小于target 最后l越右界
+- 所以出循环判断 l==len 并且 nums[l] == target 不满足 返回-1 没找到
+- 满足, 返回l
+
+```java
+int left_bound(int[] nums, int target) {
+    if (nums.length == 0) return -1;
+    int left = 0;
+    int right = nums.length; // 注意
+    
+    while (left < right) { // 注意
+        int mid = left + (right - left) / 2;
+        if (nums[mid] == target) {
+            right = mid;
+        } else if (nums[mid] < target) {
+            left = mid + 1;
+        } else if (nums[mid] > target) {
+            right = mid; // 注意
+        }
+    }
+    // target 比所有数都大
+    if (left == nums.length) return -1;
+    // 类似之前算法的处理方式
+    return nums[left] == target ? left : -1;
+}
+```
+
+### **为什么 while 中是 `<` 而不是 `<=`**?
+
+- 因为 `right = nums.length` 而不是 `nums.length - 1`。因此每次循环的「搜索区间」是 `[left, right)` 左闭右开。
+- `while(left < right)` 终止的条件是 `left == right`，此时搜索区间 `[left, left)` 为空，所以可以正确终止。
+
+
+
+### 为什么没有返回 -1 的操作？如果 `nums` 中不存在 `target` 这个值，怎么办？
+
+「左侧边界」有什么特殊含义：nums中<target的元素有left个
+
+函数的返回值（即 `left` 变量的值）取值区间是闭区间 `[0, nums.length]`
+
+最后打补丁
+
+```
+// target 比所有数都大
+if (left == nums.length) return -1;
+// 类似之前算法的处理方式
+return nums[left] == target ? left : -1;
+```
+
+
+
+### 为什么 `left = mid + 1`，`right = mid` ？
+
+因为我们的「搜索区间」是 [left, right) 左闭右开，
+
+所以当 nums[mid] 被检测之后，下一步的搜索区间应该去掉 mid 分割成两个区间，即 [left, mid) 或 [mid + 1, right)。
+
+### **为什么该算法能够搜索左侧边界**？
+
+关键在于对于 `nums[mid] == target` 这种情况的处理：
+
+```java
+if (nums[mid] == target)
+    right = mid;
+```
+
+可见，找到 target 时不要立即返回，而是缩小「搜索区间」的上界 right，在区间 [left, mid) 中继续搜索，即不断向左收缩，达到锁定左侧边界的目的。
+
+### **为什么返回 `left` 而不是 `right`**？
+
+都是一样的，因为 while 终止的条件是 `left == right`。
+
+### **能不能想办法把 `right` 变成 `nums.length - 1`，也就是继续使用两边都闭的「搜索区间」？这样就可以和第一种二分搜索在某种程度上统一起来了**。
+
+改成 <= 形式 所以 `right` 应该初始化为 `nums.length - 1`，while 的终止条件应该是 `left == right + 1`，也就是其中应该用 `<=`：
+
+由于 while 的退出条件是 `left == right + 1`，所以当 `target` 比 `nums` 中所有元素都大时，会存在索引越右界：
+
+因此，最后返回结果的代码应该检查越界情况：
+
+return left
+
+- 出循环前最后一次 left==right  出循环后left = right+1
+- 所以如果左边界不存在, 那么最后一次一定是 left = mid+1导致left = right+1, 判断是否越界可以检测这种情况
+- 如果左边界存在, 那么最后一次一定是 right = mid-1 导致left = right+1, 那么最后一次的情况是 nums[mid]>=target, 所以此时left=mid是最后一个满足nums[mid]>=right的下标 所以返回left
+
+```java
+int left_bound(int[] nums, int target) {
+    int left = 0, right = nums.length - 1;
+    // 搜索区间为 [left, right]
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        if (nums[mid] < target) {
+            // 搜索区间变为 [mid+1, right]
+            left = mid + 1;
+        } else if (nums[mid] > target) {
+            // 搜索区间变为 [left, mid-1]
+            right = mid - 1;
+        } else if (nums[mid] == target) {
+            // 收缩右侧边界
+            right = mid - 1;
+        }
+    }
+    // 检查出界情况
+    if (left >= nums.length || nums[left] != target)
+        return -1;
+    return left;
+}
+
+```
+
+## 寻找右侧边界的二分查找
+
+- 搜索右边界, 所以当nums[mid]<=target的时候, 一定会收缩左边界 l = mid+1;
+- 最后出循环 l = r+1 所以最后一个满足条件的可是能 r 但是r一直变小 r = mid-1 可能所有数都大于target 最后r越左界
+- 所以出循环判断 r<0 并且 nums[r] == target 不满足 返回-1 没找到
+- 满足, 返回r
+
+### <写法
+
+```java
+int right_bound(int[] nums, int target) {
+    if (nums.length == 0) return -1;
+    int left = 0, right = nums.length;
+    
+    while (left < right) {
+        int mid = (left + right) / 2;
+        if (nums[mid] == target) {
+            //出循环 left==right, 需要 mid = left-1
+            left = mid + 1; // 注意
+        } else if (nums[mid] < target) {
+            left = mid + 1;
+        } else if (nums[mid] > target) {
+            right = mid;
+        }
+    }
+    return left - 1; // 注意
+}
+```
+
+### <=写法
+
+```java
+int right_bound(int[] nums, int target) {
+    int left = 0, right = nums.length - 1;
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        if (nums[mid] < target) {
+            left = mid + 1;
+        } else if (nums[mid] > target) {
+            right = mid - 1;
+        } else if (nums[mid] == target) {
+            // 这里改成收缩左侧边界即可 出循环left=right+1, 所以我们需要的是mid=right
+            left = mid + 1;
+        }
+    }
+    // 这里改为检查 right 越界的情况，见下图
+    if (right < 0 || nums[right] != target)
+        return -1;
+    return right;
+}
+
+```
+
+
+
+## 704. 二分查找
+
+[704. 二分查找](https://leetcode-cn.com/problems/binary-search/)
+
+```java
+public int search(int[] nums, int target) {
+    if(nums==null || nums.length==0){
+        return -1;
+    }
+    int len = nums.length, l = 0, r = len-1;
+    while(l<=r){
+        int mid = l + (r-l)/2;
+        if(nums[mid]<target){
+            l = mid+1;
+        }else if(nums[mid]>target){
+            r = mid-1;
+        }else if(nums[mid]==target){
+            return mid;
+        }
+    }
+    //出循环l = r+1; 区间每个元素都遍历到了, 没找到说明 target不存在 返回-1
+    return -1;
+}
+```
+
+
+
+![image-20210826100448981](Algorithm.assets/image-20210826100448981.png)
+
+
+
+## 34. 在排序数组中查找元素的第一个和最后一个位置
+
+[34. 在排序数组中查找元素的第一个和最后一个位置](https://leetcode-cn.com/problems/find-first-and-last-position-of-element-in-sorted-array/)
+
+
+
+![image-20210826100657762](Algorithm.assets/image-20210826100657762.png)
+
+```java
+public int[] searchRange(int[] nums, int target) {
+    int[] res = new int[]{-1,-1};
+    if(nums==null || nums.length==0){
+        return res;
+    }
+    res[0] = findLeft(nums, target);
+    res[1] = findRight(nums, target);
+    return res;
+}
+
+/** 
+    找左边界, 
+    只要nums[mid]<=target 右边界会一直收缩, 
+    如果所有都<target l=mid+1 可能会越右界
+    最后一次l==r==mid, 这是如果nums[mid]==target r = mid-1;
+    出循环l= r+1, 这时 l是最后一个==target的位置, 但是l可能越左界需要判断越界和是否相等
+    最后返回l
+    */
+private int findLeft(int[] nums, int target){
+    int len = nums.length, l = 0, r = len-1;
+    while(l<=r){
+        int mid = l +(r-l)/2;
+        if(nums[mid]==target){
+            r = mid-1;
+        }else if(nums[mid]<target){
+            l = mid+1;
+        }else if(nums[mid]>target){
+            r = mid-1;
+        }
+    }
+    //出循环 r = l-1 最后一次 l==r 并且nums[l]>=target
+    if(l == len || nums[l]!=target){
+        return -1;
+    }
+    return l;
+}
+
+/**
+    找右界
+    只要nums[mid]<=target l=mid+1 左边界右移
+    如果所有的数都>target r = mid-1 可能越左界
+    最后一次l==r==mid, 如果存在nums[mid]<=target l = mid+1
+    出循环 l = r+1, 这时r是最后一个nums[mid]==target的位置
+    所以需要判断r是否越左界, 或者==target
+    最后返回r
+     */
+private int findRight(int[] nums, int target){
+    int len = nums.length, l = 0, r = len-1;
+    while(l<=r){
+        int mid = l +(r-l)/2;
+        if(nums[mid]==target){
+            l = mid+1;
+        }else if(nums[mid]<target){
+            l = mid+1;
+        }else if(nums[mid]>target){
+            r = mid-1;
+        }
+    }
+    //出循环 r = l-1 最后一次 l==r 并且nums[l]<=target
+    if(r<0 || nums[r]!=target){
+        return -1;
+    }
+    return r;
+}
+```
+
+
+
+
+
+## 27. 移除元素
+
+[27. 移除元素](https://leetcode-cn.com/problems/remove-element/)
+
+- 思路 二分查找
+  - 排序
+  - 找到target的左右边界
+  - 如果不存在返回数组的长度
+  - 将target左右边界内的元素交换到数组的后面
+
+![image-20210826110922886](Algorithm.assets/image-20210826110922886.png)
+
+
+
+```java
+public int removeElement(int[] nums, int val) {
+    if(nums==null || nums.length==0){
+        return 0;
+    }
+    Arrays.sort(nums);
+    int len = nums.length, cnt = 0;
+    int l = findLeft(nums, val);
+    int r = findRight(nums, val);
+    if(l==-1){
+        return len;
+    }
+    cnt = r-l+1;
+    // len-1-x+1 = r-l+1 ==> len-x = r-l+1 ==> x = len-cnt
+    int index = 0;
+    for(int i=len-1; i>=len-cnt ; i--){
+        nums[l+index] = nums[i];
+        index++;
+
+    }
+
+    return len-cnt;
+}
+
+private int findLeft(int[] nums, int target){
+    int l = 0, r = nums.length-1;
+    while(l<=r){
+        int mid = l + (r-l)/2;
+        if(nums[mid]==target){
+            r = mid-1;
+        }else if(nums[mid]<target){
+            l = mid+1;
+        }else if(nums[mid]>target){
+            r = mid-1;
+        }
+    }
+    if(l==nums.length || nums[l]!=target){
+        return -1;
+    }
+    return l;
+}
+
+private int findRight(int[] nums, int target){
+    int l = 0, r = nums.length-1;
+    while(l<=r){
+        int mid = l + (r-l)/2;
+        if(nums[mid]==target){
+            l = mid+1;
+        }else if(nums[mid]<target){
+            l = mid+1;
+        }else if(nums[mid]>target){
+            r = mid-1;
+        }
+    }
+    if(r<0 || nums[r]!=target){
+        return -1;
+    }
+    return r;
+}
+```
+
+
+
+
+
+## 4. 寻找两个正序数组的中位数
+
+[4. 寻找两个正序数组的中位数](https://leetcode-cn.com/problems/median-of-two-sorted-arrays/)
+
+- 思路
+  -  /* 主要思路：要找到第 k (k>1) 小的元素，那么就取 pivot1 = nums1[k/2-1] 和 pivot2 = nums2[k/2-1] 进行比较
+             * 这里的 "/" 表示整除
+                      * nums1 中小于等于 pivot1 的元素有 nums1[0 .. k/2-2] 共计 k/2-1 个
+                      * nums2 中小于等于 pivot2 的元素有 nums2[0 .. k/2-2] 共计 k/2-1 个
+                               * 取 pivot = min(pivot1, pivot2)，两个数组中小于等于 pivot 的元素共计不会超过 (k/2-1) + (k/2-1) <= k-2 个
+                               * 这样 pivot 本身最大也只能是第 k-1 小的元素
+                                        * 如果 pivot = pivot1，那么 nums1[0 .. k/2-1] 都不可能是第 k 小的元素。把这些元素全部 "删除"，剩下的作为新的 nums1 数组
+                                        * 如果 pivot = pivot2，那么 nums2[0 .. k/2-1] 都不可能是第 k 小的元素。把这些元素全部 "删除"，剩下的作为新的 nums2 数组
+                                                 * 由于我们 "删除" 了一些元素（这些元素都比第 k 小的元素要小），因此需要修改 k 的值，减去删除的数的个数
+                                                 */
+
+![image-20210826111213495](Algorithm.assets/image-20210826111213495.png)
+
+
+
+```java
+class Solution {
+    public double findMedianSortedArrays(int[] nums1, int[] nums2) {
+        int length1 = nums1.length, length2 = nums2.length;
+        int totalLength = length1 + length2;
+        if (totalLength % 2 == 1) {
+            int midIndex = totalLength / 2;
+            double median = getKthElement(nums1, nums2, midIndex + 1);
+            return median;
+        } else {
+            int midIndex1 = totalLength / 2 - 1, midIndex2 = totalLength / 2;
+            double median = (getKthElement(nums1, nums2, midIndex1 + 1) + getKthElement(nums1, nums2, midIndex2 + 1)) / 2.0;
+            return median;
+        }
+    }
+
+    public int getKthElement(int[] nums1, int[] nums2, int k) {
+        /* 主要思路：要找到第 k (k>1) 小的元素，那么就取 pivot1 = nums1[k/2-1] 和 pivot2 = nums2[k/2-1] 进行比较
+         * 这里的 "/" 表示整除
+         * nums1 中小于等于 pivot1 的元素有 nums1[0 .. k/2-2] 共计 k/2-1 个
+         * nums2 中小于等于 pivot2 的元素有 nums2[0 .. k/2-2] 共计 k/2-1 个
+         * 取 pivot = min(pivot1, pivot2)，两个数组中小于等于 pivot 的元素共计不会超过 (k/2-1) + (k/2-1) <= k-2 个
+         * 这样 pivot 本身最大也只能是第 k-1 小的元素
+         * 如果 pivot = pivot1，那么 nums1[0 .. k/2-1] 都不可能是第 k 小的元素。把这些元素全部 "删除"，剩下的作为新的 nums1 数组
+         * 如果 pivot = pivot2，那么 nums2[0 .. k/2-1] 都不可能是第 k 小的元素。把这些元素全部 "删除"，剩下的作为新的 nums2 数组
+         * 由于我们 "删除" 了一些元素（这些元素都比第 k 小的元素要小），因此需要修改 k 的值，减去删除的数的个数
+         */
+
+        int length1 = nums1.length, length2 = nums2.length;
+        int index1 = 0, index2 = 0;
+        int kthElement = 0;
+
+        while (true) {
+            // 边界情况
+            if (index1 == length1) {
+                return nums2[index2 + k - 1];
+            }
+            if (index2 == length2) {
+                return nums1[index1 + k - 1];
+            }
+            if (k == 1) {
+                return Math.min(nums1[index1], nums2[index2]);
+            }
+            
+            // 正常情况
+            int half = k / 2;
+            int newIndex1 = Math.min(index1 + half, length1) - 1;
+            int newIndex2 = Math.min(index2 + half, length2) - 1;
+            int pivot1 = nums1[newIndex1], pivot2 = nums2[newIndex2];
+            if (pivot1 <= pivot2) {
+                k -= (newIndex1 - index1 + 1);
+                index1 = newIndex1 + 1;
+            } else {
+                k -= (newIndex2 - index2 + 1);
+                index2 = newIndex2 + 1;
+            }
+        }
+    }
+}
+
+```
+
+
+
+## 33. 搜索旋转排序数组
+
+[33. 搜索旋转排序数组](https://leetcode-cn.com/problems/search-in-rotated-sorted-array/)
+
+![image-20210826114856362](Algorithm.assets/image-20210826114856362.png)
+
+
+
+```java
+public int search(int[] nums, int target) {
+    int n = nums.length;
+    if(n==0){
+        return -1;
+    }
+    if(n==1){
+        return nums[0]==target?0:-1;
+    }
+    int l = 0, r = n-1;
+    while(l<=r){
+        int mid = l + (r-l)/2;
+        if(nums[mid]==target){
+            return mid;
+        }
+        //nums[mid]在左半部分升序区间
+        if(nums[mid]>=nums[0]){
+            //确保target在左半部分升序区间
+            if(nums[0]<=target && target<nums[mid]){
+                r = mid - 1;
+            }else{
+                l = mid + 1;
+            }
+        }else if(nums[mid]<nums[0]){
+            //确保target在右半部分升序区间
+            if(nums[mid]<target && target <=nums[n-1]){
+                l = mid+1;
+            }else {
+                r = mid - 1;
+            }
+        }
+    }        
+    return -1;
+
+}
+```
+
+
+
+## 50. Pow(x, n)
+
+[50. Pow(x, n)](https://leetcode-cn.com/problems/powx-n/)
+
+![image-20210826120553892](Algorithm.assets/image-20210826120553892.png)
+
+```java
+public double myPow(double x, int n){
+    // n<0 需要转换为整数, n=Integer.MIN_VALUE取反后仍然是自己 按位否+1仍然是自己
+    if(x==0.0){
+        if(n==0){
+            return 1.0;
+        }
+        return 0.0;
+    }
+    long N = n;
+    //n<0 n取反, x变成倒数
+    if(N<0){
+        N = -N;
+        x = 1.0/x;
+    }
+
+    double res = 1.0;
+    //将n看成二进制, 二进制每一位都对应了 对应位的2的多少次幂
+    //不断的将N右移一位, 遇到最低位有1, 将res*对应的权重, x_contribute就是对应位置的权重, 每个循环后就变成原来的平方
+    /**
+         * x ^ (n)
+         * 如果n可以写成二进制对应了一个 01010101...0100序列的
+         *      n可以写成 2^(i_1) + 2^(i_2) +...+ 2^(i_n)
+         *  N & 1 == 1 说明当前N二进制最低位有1, 对应的原来的N的二进制序列的weight是 x_contribution
+         *  那就需要将 x_contribution乘到结果中 等于我们得到了一个 x^(2^(i-1))
+         */
+    double x_contribute = x;
+    while(N>0){
+        if((N&1)==1){
+            res *= x_contribute;
+        }
+        x_contribute *= x_contribute;
+        N >>=1;
+    }
+    return res;
+}
+```
+
+
+
+## 69. x 的平方根
+
+[69. x 的平方根](https://leetcode-cn.com/problems/sqrtx/)
+
+![image-20210826121258269](Algorithm.assets/image-20210826121258269.png)
+
+```java
+public int mySqrt(int n){
+    if(n==0 || n==1){
+        return n;
+    }
+    //找到最大的x ==> x^2<=n
+    int l = 0, r = n/2;
+    while(l<=r){
+        int mid = l + (r-l)/2;
+        //中点为0 避免
+        if(mid==0){
+            l = mid+1;
+            continue;
+        }
+        //找到
+        if(mid==n/mid){
+            return mid;
+        }else if(mid<n/mid){
+            // mid^2<n 收缩左端点
+            l = mid+1;
+        }else if(mid>n/mid){
+            // mid^2>n 收缩右端点
+            r = mid-1;
+        }
+    }
+    //出循环 l-1 = r 最后一个满足mid^2 < n的数是l-1==r
+    return l-1;
+}
+```
+
+
+
+
+
+## 240. 搜索二维矩阵 II
+
+[240. 搜索二维矩阵 II](https://leetcode-cn.com/problems/search-a-2d-matrix-ii/)
+
+![image-20210826122613667](Algorithm.assets/image-20210826122613667.png)
+
+```java
+public boolean searchMatrix(int[][] matrix, int target) {
+    int m = matrix.length, n = matrix[0].length;
+    int i = m-1, j = 0;
+    while(i>=0 && j<n){
+        if(matrix[i][j] == target){
+            return true;
+        }else if(matrix[i][j] <target){
+            j++;
+        }else if(matrix[i][j] > target){
+            i--;
+        }
+    }
+    return false;
+}
+```
+
+
+
+## 658. 找到 K 个最接近的元素
+
+[658. 找到 K 个最接近的元素](https://leetcode-cn.com/problems/find-k-closest-elements/)
+
+- 双指针
+  - l =0 r = len-1
+  - 需要删除的元素个数为 removeNum = len-k
+  - 左指针差距严格更大 左指针左移
+  - 右指针差距<=左指针 右指针左移 差距相等保留较小的元素
+  - 从左指针开始的k的个数就是结果
+
+![image-20210826125520296](Algorithm.assets/image-20210826125520296.png)
+
+```java
+public List<Integer> findClosestElements(int[] arr, int k, int x) {
+    if(arr==null || arr.length==0){
+        return new ArrayList<>();
+    }
+    int len = arr.length;
+    int l = 0, r = len-1;
+    int removeNum = len-k;
+    while(removeNum>0){
+        //左指针和x的差距更大, 缩短左指针
+        if(x-arr[l] > arr[r]-x){
+            l++;
+        }else {//右指针差距更大 缩短右指针, 两个差距相等保留较小的元素 所以这里=放到右指针
+            r--;
+        }
+        //需要删除的元素个数
+        removeNum--;
+    }
+    List<Integer> res = new ArrayList<>();
+    for(int i=l; i<l+k; i++){
+        res.add(arr[i]);
+    }
+    return res;
+}
+```
+
+
+
+
+
 ## 剑指 Offer 04. 二维数组中的查找
 
 [剑指 Offer 04. 二维数组中的查找](https://leetcode-cn.com/problems/er-wei-shu-zu-zhong-de-cha-zhao-lcof/)
@@ -5676,6 +6600,96 @@ public int rand10() {
 
 
 # 数组
+
+## 找出数组特征元素
+
+### 169. 多数元素
+
+[169. 多数元素](https://leetcode-cn.com/problems/majority-element/)
+
+- 思路 摩尔投票
+  - cand初始为数组第一个元素
+  - cand的个数cnt初始为1
+  - 遍历剩下的元素
+  - 如果cnt==0说明当前没有cand cand=nums[i]
+  - 如果cnt!=0 && cand == nums[i] cnt++;
+  - 如果cnt==0 && cand!=nums[i] cnt--;
+  - 最后的cand为出现超过一半的数
+  - 相当于不相等的数互相抵消, 超过一半的数一定最后留下
+
+![image-20210826201258166](Algorithm.assets/image-20210826201258166.png)
+
+
+
+
+
+
+
+
+
+
+
+## n数之和
+
+### 15. 三数之和
+
+[15. 三数之和](https://leetcode-cn.com/problems/3sum/)
+
+- 思路: 排序+双指针
+  - 排序
+  - 枚举数组每一个元素 i, 保证第一个元素不重复
+  - 在区间 [i+1:len-1]使用双指针, 计算三个指针的和 i,j,k
+  - 保证j和之前的一个j不重复, 否则可能出现重复的结果
+  - 当sum>0 k--
+  - 当sum<0 j++
+  - sum = 0 添加这三个指针对应的元素到一个list,然后添加到结果集里 k--, j++;
+
+![image-20210825232936301](Algorithm.assets/image-20210825232936301.png)
+
+```java
+public List<List<Integer>> threeSum(int[] nums) {
+    List<List<Integer>> list = new ArrayList<>();
+    if(nums==null || nums.length<3){
+        return list;
+    }
+    Arrays.sort(nums);
+    int len = nums.length;
+    for(int i=0; i<len-2; i++){
+        if(i>0 && nums[i]==nums[i-1]){
+            continue;
+        }
+        int j = i+1, k = len-1;
+        int curSum = 0;
+        while(j<k){
+            if(j>i+1 && nums[j]==nums[j-1]){
+                j++;
+                continue;
+            }
+            curSum = nums[i]+nums[j]+nums[k];
+            if(curSum>0){
+                k--;
+            }else if(curSum<0){
+                j++;
+            }else{
+                List<Integer> curList = new ArrayList<>();
+                curList.add(nums[i]);
+                curList.add(nums[j]);
+                curList.add(nums[k]);
+                list.add(curList);
+                k--;
+                j++;
+            }
+        }
+    }
+    return list;
+}
+```
+
+
+
+
+
+
 
 ## 数组排列
 
@@ -6340,6 +7354,8 @@ private boolean dfs(int index, int color, int[] visited, int[][] graph){
 
 https://www.bilibili.com/video/BV19L411t7a8?p=11
 
+https://www.cnblogs.com/MrSaver/p/9607552.html
+
 
 
 ```java
@@ -6350,7 +7366,7 @@ private static class Element<V>{
         this.value = value;
     }
 }
-
+//泛型类 UF模板
 public static class UnionFindSet<V>{
     //对于每个元素的值, 封装成一个类Element, 元素值-元素封装类 pair
     public HashMap<V, Element<V>> elementMap;
@@ -6384,8 +7400,557 @@ public static class UnionFindSet<V>{
             return findHead(elementMap.get(a)) == findHead(elementMap.get(b));
         }
     }
+    //合并两个元素所在集合
+    public void union(V a, V b){
+        //合并的前提保证两个元素之前存在
+        if(elementMap.containsKey(a) && elementMap.containsKey(b)){
+    		//找到两个元素对应集合的根结点
+            Element af<V> = findHead.get(elementMap.get(a));
+            Element bf<V> = findHead.get(elementMap.get(b));
+            //首先两个元素对应不再同一个集合
+            if(af!=bf){
+				//比较两个集合的大小, 
+                Element<V> big = sizeMap.get(af)>sizeMap.get(bf)?af:bf;
+                Element<V> small = big==af?bf:af;
+                //将集合小的根结点挂到集合大的根结点下面
+                fatherMap.put(small, big);
+                //更新挂载后大集合的元素
+                sizeMap.put(big, sizeMap.get(af)+sizeMap.get(bf));
+                //删除小集合
+                fatherMap.remove(small);
+            }
+        }
+    }
+    
+    //路径压缩, 从一个元素向上找到根结点, 将沿途的元素直接指向找到的根结点
+    /**
+    findHead调用次数逼近集合个数n, 单次findHead的时间复杂度就是 O(1)
+    但是如果调用次数较小 那么不能保证
+    因为调用次数多了, 那么压缩程度很大那么很快就能找到根结点
+    */
+    public Element<V> findHead(Element<V> element){
+        //维护栈保存当前元素向上找的路径
+        Deque<Element<V>> stack = new ArrayDeque<>();
+       	//当前结点不是集合的根结点
+        while(element!=fatherMap.get(element)){
+            //保存路径元素
+            stack.push(element);
+            //变成父节点
+            element = fatehrMap.get(element);
+        }
+        //将路径的每个元素父结点都设成根结点
+        while(!stack.isEmpty()){
+            fatherMap.put(stack.pop(), element);
+        }
+        return element;
+    }
+}
+
+
+//数组模板
+```
+
+
+
+
+
+## 200 岛屿数量
+
+[200. 岛屿数量](https://leetcode-cn.com/problems/number-of-islands/)
+
+- 思路
+  - 遍历数组, 是1 就开始向右下找相邻的1并且合并到一起
+  - 最后并查集连通分量的数量-0的数量就是岛屿的数量
+
+![image-20210826135103285](Algorithm.assets/image-20210826135103285.png)
+
+
+
+
+
+````java
+class Solution {
+    public int numIslands(char[][] grid) {
+        int m = grid.length;
+        int n = grid[0].length;
+        UF uf = new UF(m*n);
+        //0的个数
+        int zero = 0;
+        //只需要向右向下找即可
+        int[][] dir = {{1,0},{0,1}};
+        for(int i=0; i<m; i++){
+            for(int j=0; j<n; j++){
+                //当前是1
+                if(grid[i][j]=='1'){
+                    //下右两个方向
+                    for(int k=0; k<dir.length; k++){
+                        int newX = i+dir[k][0];
+                        int newY = j+dir[k][1];
+                        //下一个位置在范围内, 并且=1
+                        if(newX<m && newY<n && grid[newX][newY]=='1'){
+                            //合并这两个结点所在的集合
+                            uf.union(getCoor(i,j,n), getCoor(newX, newY, n));
+                        }
+                    }
+                }else{
+                    //0的个数
+                    zero++;
+                }
+            }
+        }
+        //0全部都是一个独立的集合 总数量-0的数量就是剩下的连通分量的数量
+        return uf.getCount()-zero;
+        
+    }
+
+    public int getCoor(int i, int j, int n){
+        return i*n+j;
+    }
+}
+
+class UF{
+    int count;
+    //连通分量的根结点
+    int[] parent;
+    public UF(int n){
+        parent = new int[n];
+        count = n;
+        //初始每个结点都是自己的根结点
+        for(int i=0; i<n; i++){
+            parent[i] = i;
+        }
+    }
+
+    //合并x,y两个结点所在的集合
+    public void union(int x, int y){
+        int fx = find(x);
+        int fy = find(y);
+        //必须不在一个集合才会合并
+        if(fx!=fy){
+            parent[fx] = fy;
+            //合并以后岛屿数量-1
+            count--;
+        }
+    }
+
+    //找到x的根结点
+    public int find(int x){
+        ///路径压缩, 对于路径的每个结点都将父节点变成根结点 扁平化
+        Deque<Integer> stack = new ArrayDeque<>();
+        //找根结点, 记录路径结点
+        while(x != parent[x]){
+            stack.push(x);
+            x = parent[x];
+        }
+        //扁平化
+        while(!stack.isEmpty()){
+            parent[stack.pop()] = x;
+        }
+        //返回根结点
+        return x;
+    }
+
+    //连通分量的数量
+    public int getCount(){
+        return count;
+    }
+}
+````
+
+
+
+
+
+
+
+
+
+
+
+# 背包9讲
+
+https://github.com/youngyangyang04/leetcode-master/blob/master/problems/%E8%83%8C%E5%8C%85%E7%90%86%E8%AE%BA%E5%9F%BA%E7%A1%8001%E8%83%8C%E5%8C%85-1.md
+
+## 01背包
+
+![image-20210826144643554](Algorithm.assets/image-20210826144643554.png)
+
+有N件物品和一个最多能被重量为W 的背包。
+
+第i件物品的重量是weight[i]，得到的价值是value[i] 。
+
+每件物品只能用一次，求解将哪些物品装入背包里物品价值总和最大。
+
+
+
+### 确定dp数组以及下标的含义
+
+**dp\[i][j] 表示从下标为[0-i]的物品里任意取，放进容量为j的背包，价值总和最大是多少。**
+
+![image-20210826140343629](Algorithm.assets/image-20210826140343629.png)
+
+
+
+### 确定递推公式 dp\[i][j] = max(dp\[i - 1][j], dp\[i - 1][j - weight[i]] + value[i]);
+
+那么可以有两个方向推出来dp\[i][j]，
+
+- 由dp\[i - 1][j]推出，即背包容量为j，里面不放物品i的最大价值，此时dp\[i][j]就是dp\[i - 1][j]
+- 由dp\[i - 1][j - weight[i]]推出，dp\[i - 1][j - weight[i]] 为背包容量为j - weight[i]的时候不放物品i的最大价值，那么dp\[i - 1][j - weight[i]] + value[i] （物品i的价值），就是背包放物品i得到的最大价值
+
+所以递归公式：dp\[i][j] = max(dp\[i - 1][j], dp\[i - 1][j - weight[i]] + value[i]);
+
+### dp数组如何初始化
+
+- 第一列 全为0 因为背包重量为0 无法装任何物品
+
+首先从dp\[i][j]的定义触发，如果背包容量j为0的话，即dp\[i][0]，无论是选取哪些物品，背包价值总和一定为0。
+
+- 第一行 只有第一个物品,dp\[0][j]，即：i为0，存放编号0的物品的时候，各个容量的背包所能存放的最大价值。
+
+状态转移方程 dp\[i][j] = max(dp\[i - 1][j], dp\[i - 1][j - weight[i]] + value[i]); 可以看出i 是由 i-1 推导出来，那么i为0的时候就一定要初始化。
+
+```java
+// 倒叙遍历 正确
+for (int j = bagWeight; j >= weight[0]; j--) {
+    dp[0][j] = dp[0][j - weight[0]] + value[0]; // 初始化i为0时候的情况
 }
 ```
+
+- 为什么第一行一定要倒序遍历?
+
+  - dp\[0][j]表示容量为j的背包存放物品0时候的最大价值，物品0的价值就是15，
+
+  - 因为题目中说了**每个物品只有一个！**所以dp\[0][j]如果不是初始值的话，就应该都是物品0的价值，也就是15。
+
+  - 但如果一旦正序遍历了，那么物品0就会被重复加入多次
+
+    - ```java
+      // 正序遍历 错误
+      for (int j = weight[0]; j <= bagWeight; j++) {
+          dp[0][j] = dp[0][j - weight[0]] + value[0];
+      }
+      ```
+
+    - 例如dp\[0][1] 是15，到了dp\[0][2] = dp\[0][2 - 1] + 15; 也就是dp\[0][2] = 30 了，那么就是物品0被重复放入了。
+
+**所以一定要倒叙遍历，保证物品0只被放入一次！这一点对01背包很重要**
+
+- 物品价值非负 非0下标初始化为0 , 有负数, 初始为负无穷
+
+dp[i][j]在推导的时候一定是取价值最大的数，如果题目给的价值都是正整数那么非0下标都初始化为0就可以了，因为0就是最小的了，不会影响取最大价值的结果。
+
+如果题目给的价值有负数，那么非0下标就要初始化为负无穷了。例如：一个物品的价值是-2，但对应的位置依然初始化为0，那么取最大值的时候，就会取0而不是-2了，所以要初始化为负无穷。
+
+**这样才能让dp数组在递归公式的过程中取最大的价值，而不是被初始值覆盖了**。
+
+![image-20210826144712457](Algorithm.assets/image-20210826144712457.png)
+
+### 确定遍历顺序
+
+有两个遍历的维度：物品与背包重量 **但是先遍历物品更好理解**。
+
+左到右 上到下
+
+
+
+### 代码
+
+```java
+    public static void main(String[] args) {
+        int[] weight = {1, 3, 4};
+        int[] value = {15, 20, 30};
+        int bagSize = 4;
+        testWeightBagProblem(weight, value, bagSize);
+    }
+
+    public static void testWeightBagProblem(int[] weight, int[] value, int bagSize){
+        int wLen = weight.length, value0 = 0;
+        //定义dp数组：dp[i][j]表示背包容量为j时，前i个物品能获得的最大价值
+        int[][] dp = new int[wLen + 1][bagSize + 1];
+        //初始化：背包容量为0时，能获得的价值都为0
+        for (int i = 0; i <= wLen; i++){
+            dp[i][0] = value0;
+        }
+        //遍历顺序：先遍历物品，再遍历背包容量
+        for (int i = 1; i <= wLen; i++){
+            for (int j = 1; j <= bagSize; j++){
+                if (j < weight[i - 1]){
+                    dp[i][j] = dp[i - 1][j];
+                }else{
+                    dp[i][j] = Math.max(dp[i - 1][j], dp[i - 1][j - weight[i - 1]] + value[i - 1]);
+                }
+            }
+        }
+        //打印dp数组
+        for (int i = 0; i <= wLen; i++){
+            for (int j = 0; j <= bagSize; j++){
+                System.out.print(dp[i][j] + " ");
+            }
+            System.out.print("\n");
+        }
+    }
+
+```
+
+
+
+## 01背包滚动数组
+
+https://github.com/youngyangyang04/leetcode-master/blob/master/problems/%E8%83%8C%E5%8C%85%E7%90%86%E8%AE%BA%E5%9F%BA%E7%A1%8001%E8%83%8C%E5%8C%85-2.md
+
+![image-20210826144626887](Algorithm.assets/image-20210826144626887.png)
+
+
+
+
+
+对于背包问题其实状态都是可以压缩的。
+
+在使用二维数组的时候，递推公式：dp\[i][j] = max(d\[i - 1][j], dp\[i - 1][j - weight[i]] + value[i]);
+
+**其实可以发现如果把dp[i - 1]那一层拷贝到dp[i]上，表达式完全可以是：dp\[i][j] = max(dp\[i][j], dp\[i][j - weight[i]] + value[i]);**
+
+**与其把dp[i - 1]这一层拷贝到dp[i]上，不如只用一个一维数组了**，只用dp[j]（一维数组，也可以理解是一个滚动数组）。
+
+这就是滚动数组的由来，需要满足的条件是上一层可以重复利用，直接拷贝到当前层。
+
+读到这里估计大家都忘了 dp[i][j]里的i和j表达的是什么了，i是物品，j是背包容量。
+
+**dp\[i][j] 表示从下标为[0-i]的物品里任意取，放进容量为j的背包，价值总和最大是多少**。
+
+一定要时刻记住这里i和j的含义，要不然很容易看懵了。
+
+动规五部曲分析如下：
+
+### 确定dp数组的定义
+
+在一维dp数组中，dp[j]表示：容量为j的背包，所背的物品价值可以最大为dp[j]。
+
+### 一维dp数组的递推公式 dp[j] = max(dp[j], dp[j - weight[i]] + value[i]);
+
+dp[j]为 容量为j的背包所背的最大价值，那么如何推导dp[j]呢？
+
+dp[j]可以通过dp[j - weight[i]]推导出来，dp[j - weight[i]]表示容量为j - weight[i]的背包所背的最大价值。
+
+dp[j - weight[i]] + value[i] 表示 容量为 j - 物品i重量 的背包 加上 物品i的价值。（也就是容量为j的背包，放入物品i了之后的价值即：dp[j]）
+
+此时dp[j]有两个选择，
+
+- 一个是取自己dp[j] 相当于 二维dp数组中的dp\[i-1][j]，即不放物品i，
+- 一个是取dp[j - weight[i]] + value[i]，即放物品i，指定是取最大的，毕竟是求最大价值，
+
+所以递归公式为：
+
+```
+dp[j] = max(dp[j], dp[j - weight[i]] + value[i]);
+```
+
+可以看出相对于二维dp数组的写法，就是把dp[i][j]中i的维度去掉了。
+
+### 一维dp数组如何初始化 dp[0] = 0
+
+**关于初始化，一定要和dp数组的定义吻合，否则到递推公式的时候就会越来越乱**。
+
+dp[j]表示：容量为j的背包，所背的物品价值可以最大为dp[j]，那么dp[0]就应该是0，因为背包容量为0所背的物品的最大价值就是0。
+
+那么dp数组除了下标0的位置，初始为0，其他下标应该初始化多少呢？
+
+看一下递归公式：dp[j] = max(dp[j], dp[j - weight[i]] + value[i]);
+
+dp数组在推导的时候一定是取价值最大的数，如果题目给的价值都是正整数那么非0下标都初始化为0就可以了。
+
+**这样才能让dp数组在递归公式的过程中取的最大的价值，而不是被初始值覆盖了**。
+
+那么我假设物品价值都是大于0的，所以dp数组初始化的时候，都初始为0就可以了。
+
+### 一维dp数组遍历顺序
+
+代码如下：
+
+```
+for(int i = 0; i < weight.size(); i++) { // 遍历物品
+    for(int j = bagWeight; j >= weight[i]; j--) { // 遍历背包容量
+        dp[j] = max(dp[j], dp[j - weight[i]] + value[i]);
+
+    }
+}
+```
+
+**这里大家发现和二维dp的写法中，遍历背包的顺序是不一样的！**
+
+二维dp遍历的时候，背包容量是从小到大，而一维dp遍历的时候，背包是从大到小。
+
+为什么呢？
+
+**倒叙遍历是为了保证物品i只被放入一次！**。但如果一旦正序遍历了，那么物品0就会被重复加入多次！
+
+举一个例子：物品0的重量weight[0] = 1，价值value[0] = 15
+
+如果正序遍历
+
+dp[1] = dp[1 - weight[0]] + value[0] = 15
+
+dp[2] = dp[2 - weight[0]] + value[0] = 30
+
+此时dp[2]就已经是30了，意味着物品0，被放入了两次，所以不能正序遍历。
+
+为什么倒叙遍历，就可以保证物品只放入一次呢？
+
+倒叙就是先算dp[2]
+
+dp[2] = dp[2 - weight[0]] + value[0] = 15 （dp数组已经都初始化为0）
+
+dp[1] = dp[1 - weight[0]] + value[0] = 15
+
+所以从后往前循环，每次取得状态不会和之前取得状态重合，这样每种物品就只取一次了。
+
+**那么问题又来了，为什么二维dp数组历的时候不用倒叙呢？**
+
+因为对于二维dp，dp[i][j]都是通过上一层即dp\[i - 1][j]计算而来，本层的dp[i][j]并不会被覆盖！
+
+（如何这里读不懂，大家就要动手试一试了，空想还是不靠谱的，实践出真知！）
+
+**再来看看两个嵌套for循环的顺序，代码中是先遍历物品嵌套遍历背包容量，那可不可以先遍历背包容量嵌套遍历物品呢？**
+
+不可以！
+
+因为一维dp的写法，背包容量一定是要倒序遍历（原因上面已经讲了），如果遍历背包容量放在上一层，那么每个dp[j]就只会放入一个物品，即：背包里只放入了一个物品。
+
+（这里如果读不懂，就在回想一下dp[j]的定义，或者就把两个for循环顺序颠倒一下试试！）
+
+**所以一维dp数组的背包在遍历顺序上和二维其实是有很大差异的！**，这一点大家一定要注意。
+
+
+
+### java代码
+
+```java
+    public static void main(String[] args) {
+        int[] weight = {1, 3, 4};
+        int[] value = {15, 20, 30};
+        int bagWight = 4;
+        testWeightBagProblem(weight, value, bagWight);
+    }
+
+    public static void testWeightBagProblem(int[] weight, int[] value, int bagWeight){
+        int wLen = weight.length;
+        //定义dp数组：dp[j]表示背包容量为j时，能获得的最大价值
+        int[] dp = new int[bagWeight + 1];
+        //遍历顺序：先遍历物品，再遍历背包容量
+        for (int i = 0; i < wLen; i++){
+            for (int j = bagWeight; j >= weight[i]; j--){
+                dp[j] = Math.max(dp[j], dp[j - weight[i]] + value[i]);
+            }
+        }
+        //打印dp数组
+        for (int j = 0; j <= bagWeight; j++){
+            System.out.print(dp[j] + " ");
+        }
+    }
+
+```
+
+
+
+## 完全背包
+
+![image-20210826150642252](Algorithm.assets/image-20210826150642252.png)
+
+有N件物品和一个最多能背重量为W的背包。第i件物品的重量是weight[i]，得到的价值是value[i] 。
+
+**每件物品都有无限个（也就是可以放入背包多次）**，求解将哪些物品装入背包里物品价值总和最大。
+
+**完全背包和01背包问题唯一不同的地方就是，每种物品有无限件**。
+
+首先在回顾一下01背包的核心代码
+
+```
+for(int i = 0; i < weight.size(); i++) { // 遍历物品
+    for(int j = bagWeight; j >= weight[i]; j--) { // 遍历背包容量
+        dp[j] = max(dp[j], dp[j - weight[i]] + value[i]);
+    }
+}
+```
+
+### 完全背包遍历顺序 从左到右 因为每个物品可以加多次
+
+我们知道01背包内嵌的循环是从大到小遍历，为了保证每个物品仅被添加一次。
+
+而完全背包的物品是可以添加多次的，所以要从小到大去遍历，即：
+
+```
+// 先遍历物品，再遍历背包
+for(int i = 0; i < weight.size(); i++) { // 遍历物品
+    for(int j = weight[i]; j < bagWeight ; j++) { // 遍历背包容量
+        dp[j] = max(dp[j], dp[j - weight[i]] + value[i]);
+
+    }
+}
+```
+
+**为什么遍历物品在外层循环，遍历背包容量在内层循环？**
+
+**在完全背包中，对于一维dp数组来说，其实两个for循环嵌套顺序同样无所谓！**
+
+因为dp[j] 是根据 下标j之前所对应的dp[j]计算出来的。 只要保证下标j之前的dp[j]都是经过计算的就可以了。
+
+遍历物品在外层循环，遍历背包容量在内层循环，状态如图：
+
+![image-20210826151013813](Algorithm.assets/image-20210826151013813.png)
+
+遍历背包容量在外层循环，遍历物品在内层循环，状态如图：
+
+![image-20210826151029464](Algorithm.assets/image-20210826151029464.png)
+
+### 完全背包代码
+
+```java
+//先遍历物品，再遍历背包
+private static void testCompletePack(){
+    int[] weight = {1, 3, 4};
+    int[] value = {15, 20, 30};
+    int bagWeight = 4;
+    int[] dp = new int[bagWeight + 1];
+    for (int i = 0; i < weight.length; i++){
+        for (int j = 1; j <= bagWeight; j++){
+            if (j - weight[i] >= 0){
+                dp[j] = Math.max(dp[j], dp[j - weight[i]] + value[i]);
+            }
+        }
+    }
+    for (int maxValue : dp){
+        System.out.println(maxValue + "   ");
+    }
+}
+
+//先遍历背包，再遍历物品
+private static void testCompletePackAnotherWay(){
+    int[] weight = {1, 3, 4};
+    int[] value = {15, 20, 30};
+    int bagWeight = 4;
+    int[] dp = new int[bagWeight + 1];
+    for (int i = 1; i <= bagWeight; i++){
+        for (int j = 0; j < weight.length; j++){
+            if (i - weight[j] >= 0){
+                dp[i] = Math.max(dp[i], dp[i - weight[j]] + value[j]);
+            }
+        }
+    }
+    for (int maxValue : dp){
+        System.out.println(maxValue + "   ");
+    }
+}
+
+```
+
+
+
+
+
+# KMP
+
+https://www.bilibili.com/video/BV19L411t7a8?p=11
 
 
 
@@ -6685,6 +8250,529 @@ private int backtrack(int row,   int target){
     //记录这个最优值, +N是防止target变成了负数
     memo[row][target+N] = curVal;
     return curVal;
+}
+```
+
+
+
+
+
+# 笔试练习
+
+## 完美对
+
+![image-20210826204327958](Algorithm.assets/image-20210826204327958.png)
+
+
+
+```java
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] params = br.readLine().trim().split(" ");
+        int n = Integer.parseInt(params[0]), k = Integer.parseInt(params[1]);
+        int[][] fields = new int[n][k];
+        HashMap<Integer, ArrayList<Integer>> counter = new HashMap<>();
+        int count = 0;
+        for(int i = 0; i < n; i++){
+            String[] row = br.readLine().trim().split(" ");
+            for(int j = 0; j < k; j++)
+                fields[i][j] = Integer.parseInt(row[j]);
+            // 计算出差分之和
+            int diffSum = fields[i][k - 1] - fields[i][0];
+            // 检查相反数是否在里面，并检查是否是完美对
+            if(counter.containsKey(-diffSum)){
+                for(int j = 0; j < counter.get(-diffSum).size(); j++)
+                    if(isValid(i, counter.get(-diffSum).get(j), fields)) count ++;
+            }
+            if(counter.containsKey(diffSum))
+                counter.get(diffSum).add(i);
+            else{
+                ArrayList<Integer> path = new ArrayList<>();
+                path.add(i);
+                counter.put(diffSum, path);
+            }
+        }
+        System.out.println(count);
+    }
+    
+    private static boolean isValid(int i, int j, int[][] fields) {
+        int val = fields[i][0] + fields[j][0];
+        for(int fi = 1; fi < fields[0].length; fi++)
+            if(fields[i][fi] + fields[j][fi] != val) return false;
+        return true;
+    }
+}
+```
+
+
+
+## m选n 字典序输出
+
+![image-20210826211724346](Algorithm.assets/image-20210826211724346.png)
+
+
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        int m = sc.nextInt();
+        List<List<Integer>> res = new ArrayList<>();
+        List<Integer> path = new ArrayList<>();
+        int index = 1;
+        backtrack(n, m, index, res, path);
+        for(int i=0; i<res.size(); i++){
+            for(int j=0; j<res.get(i).size();j++){
+                System.out.print(res.get(i).get(j)+" ");
+            }
+            System.out.println();
+        }
+        
+    }
+    public static void backtrack(int n, int m, int index, List<List<Integer>> res, List<Integer> path){
+        if(m==0){
+            res.add(new ArrayList<>(path));
+            return;
+        }
+        if(index==n+1){
+            return;
+        }
+        if(m>n-index+1){
+            return;
+        }
+        //选
+        path.add(index);
+        backtrack(n,m-1, index+1, res, path);
+        path.remove(path.size()-1);
+        //不选
+        backtrack(n, m, index+1, res, path);
+    }
+}
+```
+
+
+
+
+
+## 过河时间最短问题
+
+- n>=4 
+  - 思路就是每次将最重的两个人运到对面, 这样每次人数-2, 选择两种方案中时间少的
+  - 方案1
+    - /最轻的带着最重, 次重的来回 arr[j-1]+arr[j-2]+arr[0]*2
+  - 方案2
+    - //最轻和次轻过去, arr[1] 最轻回来arr[0]
+    - //最重次重过去,arr[j-1] 次轻回来 arr[1]
+
+![image-20210826214912382](Algorithm.assets/image-20210826214912382.png)
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        int num = sc.nextInt();
+        for(int i=0; i<num; i++){
+            int j = sc.nextInt();
+            int[] arr = new int[j];
+            for(int k=0; k<j; k++){
+                arr[k] = sc.nextInt();
+            }
+            Arrays.sort(arr);
+            int res = 0;
+            while(j>=4){
+                //最轻的带着最重, 次重的来回 arr[j-1]+arr[j-2]+arr[0]*2
+                int p1 = arr[j-1]+arr[j-2]+arr[0]*2;
+                //最轻和次轻过去, arr[1] 最轻回来arr[0]
+                //最重次重过去,arr[j-1] 次轻回来 arr[1]
+                int p2 = arr[j-1]+arr[0]+arr[1]*2;
+                res += Math.min(p1, p2);
+                j-=2;
+            }
+            if(j==3){
+                res += arr[0]+arr[1]+arr[2];
+            }else if(j==2){
+                res += arr[1];
+            }else if(j==1){
+                res += arr[0];
+            }
+            System.out.println(res);
+
+        }
+    }
+```
+
+
+
+## 比例问题
+
+![image-20210826223106834](Algorithm.assets/image-20210826223106834.png)
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        int A = sc.nextInt();
+        int B = sc.nextInt();
+        int a = sc.nextInt();
+        int b = sc.nextInt();
+        //找到最大公约数
+        int gcd = GCD(a,b);
+        //将分数变成最简形式
+        a = a/gcd;
+        b = b/gcd;
+        long x, y;
+        // <a || <b 无法得到 a/b
+        if(A<a || B<b){
+            x = 0;
+            y = 0;
+        }else{
+            x = a;
+            y = b;
+            //最后起始就是 na/nb = a/b;
+            while(x+a < A && y+b<B){
+                x += a;
+                y += b;
+            }
+        }
+        System.out.println(x + " " + y);
+    }
+    //gcd(a,b) = gcd(b, a%b);
+    public static int GCD(int a, int b){
+        int c = 0;
+        while(b!=0){
+            c = a % b;
+            a = b;
+            b = c;
+        }
+        return a;
+    }
+}
+
+```
+
+
+
+## 小强修水渠
+
+
+
+![image-20210826233501528](Algorithm.assets/image-20210826233501528.png)
+
+- 本质是找中位数
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        int num = sc.nextInt();
+        int[] m = new int[num];
+        for(int i=0; i<num; i++){
+            m[i] = sc.nextInt();
+            sc.nextInt();
+        }
+        Arrays.sort(m);
+        //找到x使得 整个范围内的|x_i-x|最小中位数
+        long res = 0;
+        double mid = num%2==1?m[num/2]:(m[num/2-1]+m[num/2])/2;
+        for(int i:m){
+            res += Math.abs(mid-i);
+        }
+        System.out.println(res);
+    }
+    
+}
+```
+
+
+
+
+
+# 牛客网输入输出练习
+
+https://ac.nowcoder.com/acm/contest/5652
+
+
+
+## 每行两个数, 多行 in.hasNext()
+
+![image-20210826151534526](Algorithm.assets/image-20210826151534526.png)
+
+
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner in = new Scanner(System.in);
+        while(in.hasNext()){
+            int a = in.nextInt();
+            int b = in.nextInt();
+            System.out.println(a+b);
+        }
+    }
+}
+```
+
+
+
+
+
+
+
+
+
+## 第一行一个数表示一共多少组数, 每组2个数
+
+
+
+![image-20210826151858209](Algorithm.assets/image-20210826151858209.png)
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner in = new Scanner(System.in);
+        int num = in.nextInt();
+        for(int i=0; i<num; i++){
+            int a = in.nextInt();
+            int b = in.nextInt();
+            System.out.println(a+b);
+        }
+    }
+}
+```
+
+
+
+## 多组数, 每组两个数 如果为 0 0 则结束
+
+![image-20210826152237838](Algorithm.assets/image-20210826152237838.png)
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner in = new Scanner(System.in);
+        while(in.hasNext()){
+            int a = in.nextInt();
+            int b = in.nextInt();
+            if(a==0 && b==0){
+                break;
+            }
+            System.out.println(a+b);
+        }
+    }
+}
+```
+
+
+
+## 多组数, 每组第一个数据表示这一组的数据个数 第一个数=0结束
+
+![image-20210826152528345](Algorithm.assets/image-20210826152528345.png)
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner in = new Scanner(System.in);
+        while(in.hasNext()){
+            int num = in.nextInt();
+            if(num==0){
+                break;
+            }
+            int sum = 0;
+            for(int i=0; i<num; i++){
+                sum += in.nextInt();
+            }
+            System.out.println(sum);
+        }
+    }
+}
+```
+
+
+
+## 第一行表示组数, 每组第一个数表示这一组的数据个数
+
+![image-20210826152908893](Algorithm.assets/image-20210826152908893.png)
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner in = new Scanner(System.in);
+        int num = in.nextInt();
+        for(int i=0; i<num; i++){
+            int curNum = in.nextInt();
+            int sum = 0;
+            for(int j=0; j<curNum; j++){
+                sum += in.nextInt();
+            }
+            System.out.println(sum);
+        }
+    }
+}
+```
+
+
+
+## 多组, 每组第一个表示这组的数据个数
+
+![image-20210826153242692](Algorithm.assets/image-20210826153242692.png)
+
+
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner in = new Scanner(System.in);
+        while(in.hasNext()){
+            int num = in.nextInt();
+            int sum = 0;
+            for(int i=0; i<num; i++){
+                sum += in.nextInt();
+            }
+            System.out.println(sum);
+        }
+    }
+}
+```
+
+
+
+## 多组, 每组数据数量不确定 scanner.nextLine().split() Integer.valueOf()
+
+![image-20210826153814687](Algorithm.assets/image-20210826153814687.png)
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner in = new Scanner(System.in);
+        while(in.hasNext()){
+            String[] arr = in.nextLine().split(" ");
+            int sum = 0;
+            for(int i=0; i<arr.length; i++){
+                sum += Integer.valueOf(arr[i]);
+            }
+            System.out.println(sum);
+        }
+    }
+}
+```
+
+
+
+
+
+## 对输入的字符串进行排序后输出
+
+![image-20210826153914941](Algorithm.assets/image-20210826153914941.png)
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner in = new Scanner(System.in);
+        while(in.hasNext()){
+            int a = in.nextInt();
+            in.nextLine();
+            String[] arr = in.nextLine().split(" ");
+            Arrays.sort(arr);
+            for(int i=0; i<arr.length; i++){
+                System.out.print(arr[i]+" ");
+            }
+        }
+    }
+}
+```
+
+
+
+
+
+## 多组数据, 每组排序后输出 (注意每组输出后换行)
+
+![image-20210826154735899](Algorithm.assets/image-20210826154735899.png)
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        while(sc.hasNext()){
+            String[] arr = sc.nextLine().split(" ");
+            Arrays.sort(arr);
+            for(int i=0; i<arr.length; i++){
+                System.out.print(arr[i]+" ");
+            }
+            System.out.println();
+        }
+    }
+}
+```
+
+
+
+
+
+## 多组数据, 每组排序后+ ',' 输出
+
+![image-20210826155133019](Algorithm.assets/image-20210826155133019.png)
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        while(sc.hasNext()){
+            String[] arr = sc.nextLine().split(",");
+            Arrays.sort(arr);
+            for(int i=0; i<arr.length; i++){
+                if(i==arr.length-1){
+                    System.out.print(arr[i]);
+                }else{
+                    System.out.print(arr[i]+",");
+                }
+                
+            }
+            System.out.println();
+        }
+    }
+}
+```
+
+
+
+## 多组数据 每组两个数, 可能是long nextLong();
+
+![image-20210826160034150](Algorithm.assets/image-20210826160034150.png)
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        while(sc.hasNext()){
+            long a = sc.nextLong();
+            long b = sc.nextLong();
+            System.out.println(a+b);
+        }
+    }
 }
 ```
 

@@ -1072,13 +1072,6 @@ https://potoyang.gitbook.io/spring-in-action-v5/di-1-zhang-spring-ru-men/1.1-she
              public static void main(String[] args) {
                  //创建接口实现类的代理对象
                  Class[] interfaces = {UserDao.class};
-                 //方法一: InvocationHandler 创建匿名内部代理对象
-         //        Proxy.newProxyInstance(JDK_proxy.class.getClassLoader(), interfaces, new InvocationHandler() {
-         //            @Override
-         //            public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-         //                return null;
-         //            }
-         //        });
                  UserDaoImpl userDao = new UserDaoImpl();
                  //方法二: 写一个类, 再在其中写增强的方法
                  //JDK_proxy.class.getClassLoader() 获取当前动态代理类的类加载器
@@ -1088,26 +1081,24 @@ https://potoyang.gitbook.io/spring-in-action-v5/di-1-zhang-spring-ru-men/1.1-she
                  UserDao dao = (UserDao)Proxy.newProxyInstance(JDK_proxy.class.getClassLoader(), interfaces, new UserDaoProxy(userDao));
                  int res = dao.add(1,2);
                  System.out.println("res="+res);
-         
              }
          }
          ```
-
          
-
+         
+         
       2. 其中利用Proxy.newProxyInstance()方法创建接口实现类的动态代理对象
-
+      
       3. newProxyInstance()需要传入三个参数
          1. 当前类的类加载器
          2. 该代理对象所代理的实现类所实现的接口
          3. InvocationHandler接口的实现类的对象
-
+      
       4. 创建UserDaoProxy类实现InvocationHandler接口
-
+      
          ```Java
          //创建代理对象代码
          class UserDaoProxy implements InvocationHandler{
-         
              //1 创建的是谁的代理对象, 把谁传递进来
              //有参构造传递
              //在构造器的参数里, Object代表的就是所代理对象的类, 这样更加通用
@@ -1115,27 +1106,23 @@ https://potoyang.gitbook.io/spring-in-action-v5/di-1-zhang-spring-ru-men/1.1-she
              public UserDaoProxy(Object obj){
                  this.obj = obj;
              }
-         
              //增强的逻辑
              @Override
              public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-         
                  //方法之前
                  System.out.println("被增强方法之前执行..."+method.getName()+":传递的参数..."+ Arrays.toString(args));
-         
                  //被增强的方法执行
                  //(执行method方法的对象, 方法执行的参数)
                  Object res = method.invoke(this.obj, args);
-         
                  //方法之后
                  System.out.println("被增强方法之后执行..."+obj);
                  return res;
              }
          }
          ```
-
          
-
+         
+         
          1. 将被代理类的对象传递进来
             1. 通过创建被代理类的对象属性
             2. 通过有参构造中被代理类对象的属性,将被代理类对象传递进来并赋值给当前类的被代理对象属性,实现将被代理类的对象传递进来
@@ -1146,7 +1133,7 @@ https://potoyang.gitbook.io/spring-in-action-v5/di-1-zhang-spring-ru-men/1.1-she
          3. 通过参数中method.invoke(被代理对象(通过有参构造传递进来),args ) 执行被增强的原始方法
             1. 该方法的返回值也是当前invoke方法的返回值
          4. 在method之前或之后, 实现方法的增强
-
+         
       5. 在动态代理类中把InvocationHandler接口的实现类UserDaoProxy的对象传递进来
 
          1. 需要先new 一个被代理类的对象 userDao
