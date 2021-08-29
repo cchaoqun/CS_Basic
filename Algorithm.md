@@ -868,6 +868,83 @@ public int maximalSquare(char[][] matrix){
 
 ## 子序列(Subsequence)
 
+### 1143. 最长公共子序列
+
+[1143. 最长公共子序列](https://leetcode-cn.com/problems/longest-common-subsequence/)
+
+- 思路 `dp[i][j] = text1[0:i] 和 text[0:j]`最长公共子序列
+  - 如果`text1.charAt(i)==text2.charAt(j)` 那么子序列的长度在 `dp[i-1][j-1]`的基础上+1
+  - 否则 取 `Math.max(dp[i][j+1],dp[i+1][j]) ` 因为当前的 `i,j`对应位置不匹配,舍弃其中一个然后取较大的
+  - 最后返回`dp[len1][len2]`
+
+![image-20210829210749147](Algorithm.assets/image-20210829210749147.png)
+
+```java
+//二维
+public int longestCommonSubsequence(String text1, String text2) {
+    /**
+        如果text1.charAt(i-1) == text2.charAt(j-1)
+            dp[i][j] = dp[i-1][j-1]+1
+        else
+            dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1])
+         */
+    int len1 = text1.length();
+    int len2 = text2.length();
+    int[][] dp = new int[len1+1][len2+1];
+
+    for(int i=0; i<len1; i++){
+        for(int j=0; j<len2; j++){
+
+            if(text1.charAt(i)==text2.charAt(j)){
+                dp[i+1][j+1] = dp[i][j]+1;
+            }else{
+                dp[i+1][j+1] = Math.max(dp[i][j+1],dp[i+1][j]) ;
+            }
+        }
+    }
+    return dp[len1][len2];
+
+}
+//一行数组
+public int longestCommonSubsequence(String text1, String text2) {
+    /**
+        如果text1.charAt(i-1) == text2.charAt(j-1)
+            dp[i][j] = dp[i-1][j-1]+1
+        else
+            dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1])
+         */
+    int len1 = text1.length();
+    int len2 = text2.length();
+    int[] dp = new int[len2+1];
+
+    for(int i=0; i<len1; i++){
+        //每一行第一列都是0 因为text2没有字符一定没有公共子序列
+        dp[0] = 0;
+        //一开始左上角无意义所以是0
+        int lu = 0;
+        for(int j=0; j<len2; j++){
+            //当前位置要更新的是dp[j+1] 这个位置更新前的值是右边位置的左上角, 先记录下来
+            int nextLu = dp[j+1];
+            if(text1.charAt(i)==text2.charAt(j)){
+                //dp[i+1][j+1] = dp[i][j]+1
+                dp[j+1] = lu+1;
+            }else{
+                //dp[i+1][j+1] = Math.max(dp[i][j+1],dp[i+1][j])
+                dp[j+1] = Math.max(dp[j+1],dp[j]) ;
+            }
+            //更新下一个位置的左上角的值
+            lu = nextLu;
+        }
+    }
+    return dp[len2];
+
+}
+```
+
+
+
+
+
 ### []300. 最长递增子序列
 
 [300. 最长递增子序列](https://leetcode-cn.com/problems/longest-increasing-subsequence/)
@@ -2152,13 +2229,95 @@ public class CombinationCoins {
 
 [ 42. 接雨水（困难）](https://leetcode-cn.com/problems/trapping-rain-water/)
 
-[ 739. 每日温度（中等）](https://leetcode-cn.com/problems/daily-temperatures/)
 
-[ 496. 下一个更大元素 I（简单）](https://leetcode-cn.com/problems/next-greater-element-i/)
 
 [ 901. 股票价格跨度（中等）](https://leetcode-cn.com/problems/online-stock-span/)
 
 [ 581. 最短无序连续子数组](https://leetcode-cn.com/problems/shortest-unsorted-continuous-subarray/)
+
+### 739. 每日温度
+
+[739. 每日温度](https://leetcode-cn.com/problems/daily-temperatures/)
+
+- 思路 单调递减栈 栈中的元素都还没有找到下一个更高温度的天
+  - 栈顶下标对应的元素<当前元素的值 栈顶出栈
+  - 并且记录出栈元素下标在结果中的值为 当前元素的下标-出栈下标
+  - 当前元素下标入栈
+
+![image-20210829074905329](Algorithm.assets/image-20210829074905329.png)
+
+```java
+public int[] dailyTemperatures(int[] t) {
+    if(t==null || t.length==0){
+        return t;
+    }
+    int[] res = new int[t.length];
+    Deque<Integer> monoStack = new ArrayDeque<>();
+    for(int i=0; i<t.length; i++){
+        //这里peekLast()的是下标, 需要找到数组对应元素再比较
+        while(!monoStack.isEmpty() && t[monoStack.peekLast()]<t[i]){
+            int top = monoStack.pollLast();
+            res[top] = i-top;
+        }
+        monoStack.offerLast(i);
+    }
+    //处理没有找到的元素
+    while(!monoStack.isEmpty()){
+        res[monoStack.pollLast()] = 0;
+    }
+    return res;
+}
+```
+
+
+
+### 496. 下一个更大元素 I
+
+[ 496. 下一个更大元素 I（简单）](https://leetcode-cn.com/problems/next-greater-element-i/)
+
+- 思路 单调递减栈 栈中元素都还没找到下一个更大的元素
+  - 栈顶元素<当前元素 栈顶元素的下一个更大元素为当前元素, map.put(栈顶元素, 当前元素)
+  - 当前元素入栈
+  - 遍历nums1 通过map.get(nums1[i]), 如果找不到说明没有 -1 找到了就是对应的元素
+
+![image-20210829080902993](Algorithm.assets/image-20210829080902993.png)
+
+
+
+```java
+public int[] nextGreaterElement(int[] nums1, int[] nums2) {
+    Map<Integer, Integer> map = new HashMap<>();
+    Deque<Integer> stack = new ArrayDeque<>();
+    for(int i=0; i<nums2.length; i++){
+        while(!stack.isEmpty() && stack.peekLast()<nums2[i]){
+            int top = stack.pollLast();
+            map.put(top, nums2[i]);
+        }
+        stack.offerLast(nums2[i]);
+    }
+    int[] res = new int[nums1.length];
+    for(int i=0; i<res.length; i++){
+        res[i] = map.getOrDefault(nums1[i], -1);
+    }
+    return res;
+}
+```
+
+
+
+### 503. 下一个更大元素 II
+
+[503. 下一个更大元素 II](https://leetcode-cn.com/problems/next-greater-element-ii/)
+
+![image-20210829083314912](Algorithm.assets/image-20210829083314912.png)
+
+
+
+
+
+
+
+
 
 
 
@@ -2546,6 +2705,14 @@ public String removeKdigits(String num, int k) {
     return sb.length()==0? "0":sb.toString();
 }
 ```
+
+
+
+
+
+
+
+
 
 
 
@@ -4494,6 +4661,25 @@ public int lengthOfLongestSubstring(String s){
     return maxlen;
 }
 
+//HashMap记录每个字符出现的最后位置, 遇到重复更新左指针为 重复字符最后出现的位置+1 和左指针当前位置更大的
+public int lengthOfLongestSubstring(String s){
+    if(s==null || s.length()==0){
+        return 0;
+    }
+    Map<Character, Integer> map = new HashMap<>();
+    int l = 0, r=-1 , max = 0;
+    while(r<s.length()-1){
+        r++;
+        char cur = s.charAt(r);
+        if(map.containsKey(cur)){
+            //l左指针可能在这个元素的右边 取最右边的
+            l = Math.max(map.get(cur)+1, l);
+        }
+        map.put(cur, r);
+        max = Math.max(max, r-l+1);
+    }
+    return max;
+}
 ```
 
 
@@ -5254,7 +5440,66 @@ public boolean isPalindrome(int x) {
 
 # String Manipulation
 
+
+
+## Z字变换
+
+### 6. Z 字形变换
+
+[6. Z 字形变换](https://leetcode-cn.com/problems/zigzag-conversion/)
+
+- 思路
+  - 建立StringBuffer[] 表示每行Z字变换后的字符串
+  - row 代表当前所在的行, flag表示当前是向下遍历还是向上遍历
+  - 遍历s
+  - 需要变换方向的条件
+    - 到最后一行, row=numRows flag=-1换成向上
+    - 第二次站在第一行 i>0 row=0 flag=1 换成向下
+  - 更新row+= flag
+  - 最后将所有的字符串按顺序append到一起返回
+
+![image-20210829184935125](Algorithm.assets/image-20210829184935125.png)
+
+```java
+public String convert(String s, int numRows) {
+    StringBuffer[] sb = new StringBuffer[numRows];
+    for(int i=0; i<numRows; i++){
+        sb[i] = new StringBuffer();
+    }
+    if(numRows==1){
+        return s;
+    }
+    int flag = 1;
+    int row = 0;
+    /**
+        换方向的条件 row=numRows-1 || row==0
+         */
+    for(int i=0; i<s.length(); i++){
+        sb[row].append(s.charAt(i));
+        if(i>0 && row==0){
+            flag = 1;
+        }else if(row==numRows-1){
+            flag = -1;
+        }
+        row += flag;
+    }
+    StringBuffer res = new StringBuffer();
+    for(StringBuffer cur : sb){
+        res.append(cur.toString());
+    }
+    return res.toString();
+}
+```
+
+
+
 ## 字符串 加 乘
+
+
+
+
+
+
 
 ### 43. 字符串相乘
 
@@ -5626,6 +5871,68 @@ private boolean match(String s, int i, int wordLen, int wordNum){
 
 
 
+### 1048. 最长字符串链
+
+[1048. 最长字符串链](https://leetcode-cn.com/problems/longest-string-chain/)
+
+- 思路 dp
+  - 对数组按照字符长度排序
+  - dp[i] 代表以words[i] 结尾的字符串构成的最长的字符串链
+  - 对于每个words[i] 遍历前 i-1 个字符串, 查看是否是其前身字符串, 如果是, 当前字符串可以接在后面
+  - 找到可以接的字符串链的最大值, 更新全局最大长度
+  - 比较是否是前身字符串的逻辑
+    - 遍历str2, 记录一个str1的指针 index
+    - 每次str2.charAt(i)==str1.charAt(index) index++
+    - 表示一个按顺序匹配到的字符串
+    - 如果最后index==str1.length 说明str1的字符能够按顺序在str2中匹配 返回true
+    - 否则返回false
+
+![image-20210829180115754](Algorithm.assets/image-20210829180115754.png)
+
+
+
+```java
+public int longestStrChain(String[] words) {
+        int n = words.length;
+        int res = 0;
+        //dp[i] = words[i] 为止包括的最长字符串链长度
+        int[] dp = new int[n];
+        //根据数组中字符串的长度排序
+        Arrays.sort(words, (a,b)->(a.length()-b.length()));
+        //对于每个i向前找前身字符串 得到最大的长度
+        for(int i=0; i<words.length; i++){
+            dp[i] = 1;
+            for(int j=0; j<i; j++){
+                //dp[i] 可以接在dp[j]后面 
+                if(checkPrev(words[j], words[i])){
+                    dp[i] = Math.max(dp[i], dp[j]+1);
+                }
+            }
+            res = Math.max(res, dp[i]);
+        }
+        return res;
+
+    }
+
+    //判断str1是否是str2的前身字符串
+    public boolean checkPrev(String str1, String str2){
+        if(str2.length()-str1.length()!=1){
+            return false;
+        }
+        int index = 0;
+        //只要按照str2中去掉一个不同的字符, 其他字符在str1中都是对应排序的index=str1.length()
+        for(int i=0; i<str2.length() && index<str1.length(); i++){
+            if(str2.charAt(i)==str1.charAt(index)){
+                index++;
+            }
+        }
+        if(index==str1.length()){
+            return true;
+        }
+        return false;
+    }
+```
+
 
 
 
@@ -5879,6 +6186,73 @@ int right_bound(int[] nums, int target) {
 }
 
 ```
+
+
+
+
+
+### 14. 最长公共前缀
+
+[14. 最长公共前缀](https://leetcode-cn.com/problems/longest-common-prefix/)
+
+- 思路 二分查找
+  - 得到字符串中最长的长度
+  - 对这个最长的长度进行二分查找
+  - [0,mid] 这个范围是否是所有字符的公共前缀 是就 l = r+1
+    - 判断是否是所有字符串的公共前缀
+    - 如果某个字符串长度len-1<mid 不满足
+    - 如果某个字符串substring(0,mid+1) 不等于这个前缀 不满足
+    - 所有都满足返回true
+  - 不是 r = mid-1
+  - 出循环l=r+1 最后一个满足条件的是r 所以str[0].substring(0,r+1)
+
+![image-20210829190735049](Algorithm.assets/image-20210829190735049.png)
+
+```java
+public String longestCommonPrefix(String[] strs) {
+    if(strs==null || strs.length==0){
+        return "";
+    }
+    int len = strs.length;
+    int maxLen = 0;
+    for(String cur : strs){
+        maxLen = Math.max(maxLen, cur.length());
+    }
+    int l=0, r=maxLen-1;
+    while(l<=r){
+        int mid = l + (r-l)/2;
+        if(isCommonPrefix(strs, mid)){
+            l = mid+1;
+        }else{
+            r = mid-1;
+        }
+    }
+    //出循环最后一个满足条件的应该到下标r位置
+    return strs[0].substring(0,r+1);
+
+}
+
+//判断所有的字符串是否到len长度都有公共的len长度的前缀
+private boolean isCommonPrefix(String[] strs, int index){
+    if(strs[0].length()-1<index){
+        return false;
+    }
+    String prefix = strs[0].substring(0,index+1);
+    for(String str : strs){
+        if(str.length()-1<index){
+            return false;
+        }
+        if(!str.substring(0,index+1).equals(prefix)){
+            return false;
+        }
+    }
+    return true;
+}
+```
+
+
+
+
 
 
 
@@ -8257,9 +8631,90 @@ private int backtrack(int row,   int target){
 
 
 
+
+
+# 笔试复盘
+
+## 阿里0827
+
+
+
+## 美团0829
+
+### 第一题
+
+一个数组int[] num,  对于第i个数 前i-1个数中 nums[j]<nums[i] 且不同的数个数为这个位置的权值, 求所有数权值的和
+
+数组 1 1 2 2 2  3 3 3 1
+
+权值 0 0 1 1 1 2 2 2 0 
+
+权值的和是1+1+1+2+2+2 = 9;
+
+###  第二题
+
+n本书的重量在 int[] book, 每本书的重量为 book[i]
+
+n个位置 int[] pos 可以放书, 每个位置可以放的重量为 pos[i]
+
+每本书 i 必须放在位置 j 要求 pos[j]>=book[i]
+
+求有多少种可以放书的方式 结果需要mod 10^9+7
+
+### 第三题
+
+一个无线的输入流 可以重复的输入一个字符串 meituan
+
+需要从这个输入流中得到 一个给定的字符如 uta
+
+求得到这个target字符为止 会浪费多少个字符
+
+meituanmeituanmeituan...
+
+​	     1           1  1   
+
+到第二个meituan的a的位置位置一共13个字符, 用掉了3个 u t a,浪费了10个
+
+### 第四题
+
+一个n*m的矩阵, 表示草坪, 草坪初始每个位置都有1单位的草, 每过一天, 每个位置的草都会+1个单位
+
+一个 k*3的矩阵 表示第k天 这个人站在 [x,y] 位置, 会将  将满足 `(i-x)^2+(j-y)^2 <= r^2` [i,j]位置的草全部锄完变成0
+
+[x,y] 是这个人站的位置, [i,j] 是满足条件的矩阵中的位置, r对于每一天是一个固定值
+
+对于第k天, `x = pos[k][0], y=pos[k][1], r=pos[k][2]`
+
+在第k天的晚上会把矩阵中所有的草全部清理完, 求第k天的晚上清理多少单位的草
+
+
+
+
+
+
+
+
+
+
+
 # 笔试练习
 
-## 完美对
+```
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        
+        System.out.println();
+    }
+}
+```
+
+
+
+## 阿里
+
+### 完美对
 
 ![image-20210826204327958](Algorithm.assets/image-20210826204327958.png)
 
@@ -8313,7 +8768,7 @@ public class Main {
 
 
 
-## m选n 字典序输出
+### m选n 字典序输出
 
 ![image-20210826211724346](Algorithm.assets/image-20210826211724346.png)
 
@@ -8363,7 +8818,7 @@ public class Main{
 
 
 
-## 过河时间最短问题
+### 过河时间最短问题
 
 - n>=4 
   - 思路就是每次将最重的两个人运到对面, 这样每次人数-2, 选择两种方案中时间少的
@@ -8413,7 +8868,7 @@ public class Main{
 
 
 
-## 比例问题
+### 比例问题
 
 ![image-20210826223106834](Algorithm.assets/image-20210826223106834.png)
 
@@ -8463,7 +8918,7 @@ public class Main{
 
 
 
-## 小强修水渠
+### 小强修水渠
 
 
 
@@ -8494,6 +8949,1030 @@ public class Main{
     
 }
 ```
+
+
+
+
+
+### 国际交流会
+
+https://www.nowcoder.com/question/next?pid=30440590&qid=1664936&tid=47017772
+
+- 思路
+  - 将数组按照小大小大排列
+
+```
+最近小强主办了一场国际交流会，大家在会上以一个圆桌围坐在一起。由于大会的目的就是让不同国家的人感受一下不同的异域气息，为了更好地达到这个目的，小强希望最大化邻座两人之间的差异程度和。为此，他找到了你，希望你能给他安排一下座位，达到邻座之间的差异之和最大。
+
+输入描述:
+输入总共两行。
+第一行一个正整数，代表参加国际交流会的人数(即圆桌上所坐的总人数，不单独对牛牛进行区分）
+第二行包含个正整数，第个正整数a_i代表第个人的特征值。
+其中
+注意：
+邻座的定义为: 第人的邻座为，第人的邻座是，第人的邻座是。
+邻座的差异值计算方法为。
+每对邻座差异值只计算一次。
+
+输出描述:
+输出总共两行。
+第一行输出最大的差异值。
+第二行输出用空格隔开的个数，为重新排列过的特征值。
+（注意：不输出编号）
+如果最大差异值情况下有多组解，输出任意一组即可。
+
+输入例子1:
+4
+3 6 2 9
+
+输出例子1:
+20
+6 2 9 3
+
+例子说明1:
+这么坐的话
+差异和为\text |6-2|+|2-9|+|9-3|+|3-6|=20为最大的情况。
+```
+
+
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        int[] arr  = new int[n];
+        for(int i=0; i<n; i++){
+            arr[i] = sc.nextInt();
+        }
+        Arrays.sort(arr);
+        int l =0, r = n-1;
+        long[] res = new long[n];
+        long cnt = 0;
+        for(int i=0; i<n; i++){
+            res[i] = i%2==0? arr[r--]:arr[l++];
+            if(i>0){
+                cnt += Math.abs(res[i]-res[i-1]);
+            }
+        }
+        cnt += Math.abs(res[0]-res[n-1]);
+        System.out.println(cnt);
+        for(int i=0; i<n; i++){
+            System.out.print(res[i]+" ");
+        }
+        
+        sc.close();
+    }
+    
+    public static void swap(int[] num, int i, int j){
+        int temp = num[i];
+        num[i] = num[j];
+        num[j] = temp;
+    }
+}
+```
+
+
+
+
+
+### 小强的神奇矩阵
+
+```
+小强有一个的矩阵，他将中每列的三个数字中取出一个按顺序组成一个长度为的数组，即b_i可以是其中任意一个。问的最小值是多少。
+
+输入描述:
+第一行，一个正整数。
+第二行到第四行输入一个的矩阵，每行输入个正整数。
+。
+
+输出描述:
+一行一个正整数表示答案。
+
+输入例子1:
+5
+5 9 5 4 4
+4 7 4 10 3
+2 10 9 2 3
+
+输出例子1:
+5
+
+例子说明1:
+数组\mathit b可以为\left[5,7,5,4,4\right]，答案为\text 5。
+```
+
+
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        int[][] num = new int[3][n];
+        for(int i=0; i<3; i++){
+            for(int j=0; j<n; j++){
+                num[i][j] = sc.nextInt();
+            }
+        }
+        long[][] res = new long[3][n];
+        long r = 0;
+        //这里需要按列遍历, 保证前面一列的结果在当前列计算的时候已知
+        for(int j=1; j<n; j++){
+            for(int i=0; i<3; i++){
+                int cur = num[i][j];
+                long d1 = Math.abs(cur-num[0][j-1])+res[0][j-1];
+                long d2 = Math.abs(cur-num[1][j-1])+res[1][j-1];
+                long d3 = Math.abs(cur-num[2][j-1])+res[2][j-1];
+                res[i][j] = Math.min(d1, Math.min(d2,d3));
+            }
+        }
+        r = Math.min(res[0][n-1], res[1][n-1]);
+        r = Math.min(r, res[2][n-1]);
+        System.out.println(r);
+        
+    }
+    
+    public static void backtrack(int[][] num, int index, long prev, long sum, long[] min){
+        if(index==num[0].length){
+            min[0] = Math.min(min[0], sum);
+            return;
+        }
+        if(sum>min[0]){
+            return;
+        }
+        for(int i=0; i<3; i++){
+            int cur = num[i][index];
+            long diff = index==0?0:Math.abs(cur-prev);
+            backtrack(num, index+1, cur, sum+diff, min);
+            
+        }
+    }
+}
+```
+
+
+
+
+
+## 美团
+
+### 淘汰分数
+
+```
+淘汰分数
+时间限制：C/C++ 1秒，其他语言2秒
+
+空间限制：C/C++ 256M，其他语言512M
+
+某比赛已经进入了淘汰赛阶段,已知共有n名选手参与了此阶段比赛，他们的得分分别是a_1,a_2….a_n,小美作为比赛的裁判希望设定一个分数线m，使得所有分数大于m的选手晋级，其他人淘汰。
+
+但是为了保护粉丝脆弱的心脏，小美希望晋级和淘汰的人数均在[x,y]之间。
+
+显然这个m有可能是不存在的，也有可能存在多个m，如果不存在，请你输出-1，如果存在多个，请你输出符合条件的最低的分数线。
+
+
+输入描述:
+输入第一行仅包含三个正整数n,x,y，分别表示参赛的人数和晋级淘汰人数区间。(1<=n<=50000,1<=x,y<=n)
+
+输入第二行包含n个整数，中间用空格隔开，表示从1号选手到n号选手的成绩。(1<=|a_i|<=1000)
+
+
+输出描述:
+输出仅包含一个整数，如果不存在这样的m，则输出-1，否则输出符合条件的最小的值。
+
+
+输入例子1:
+6 2 3
+1 2 3 4 5 6
+
+输出例子1:
+3
+```
+
+
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        int x = sc.nextInt();
+        int y = sc.nextInt();
+        int[] num = new int[n];
+        for(int i=0; i<n; i++){
+            num[i] = sc.nextInt();
+        }
+        if(n<2*x || n>2*y){
+            System.out.println(-1);
+        }
+        Arrays.sort(num);
+        int rem = n-y;
+        if(rem > y){
+            // 人数等于 n=rem+y >y+y= 2y 总人数>2y 无法分割导致人数都<=y
+            System.out.println(-1);
+        }else if(rem>=x && rem<=y){
+            // 选y人通过, 剩下 n-y 人刚好也在[x:y] 选择最大的y个人通过
+            // n-1-x+1 = y ==> x = n-y [n-y:n-1]是y个人, 所以>num[n-y-1]就是y个人
+            System.out.println(num[n-y-1]);
+        }else if(rem<x){
+            //选择y个人剩下的人数<x 需要选择最低的x个人不通过 剩下的人数一定<y
+            // 取最低的x个人
+            System.out.println(num[x-1]);
+        }
+    }
+
+}
+```
+
+
+
+
+
+### 正则序列
+
+- 思路 排序+贪心
+  - 对数组排序
+  - 将每个位置的数都变成对应位置的下标+1 这样移动一定最少次
+
+```
+]正则序列
+时间限制：C/C++ 1秒，其他语言2秒
+
+空间限制：C/C++ 256M，其他语言512M
+
+我们称一个长度为n的序列为正则序列，当且仅当该序列是一个由1~n组成的排列，即该序列由n个正整数组成，取值在[1,n]范围，且不存在重复的数，同时正则序列不要求排序
+
+有一天小团得到了一个长度为n的任意序列，他需要在有限次操作内，将这个序列变成一个正则序列，每次操作他可以任选序列中的一个数字，并将该数字加一或者减一。
+
+请问他最少用多少次操作可以把这个序列变成正则序列？
+
+
+输入描述:
+输入第一行仅包含一个正整数n，表示任意序列的长度。(1<=n<=20000)
+
+输入第二行包含n个整数，表示给出的序列，每个数的绝对值都小于10000。
+
+
+输出描述:
+输出仅包含一个整数，表示最少的操作数量。
+
+
+输入例子1:
+5
+-1 2 3 10 100
+
+输出例子1:
+103
+```
+
+
+
+
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        int[] num = new int[n];
+        for(int i=0; i<n; i++){
+            num[i] = sc.nextInt();
+        }
+        int cnt = 0;
+        Arrays.sort(num);
+        for(int i=0; i<n; i++){
+            cnt += Math.abs(i+1-num[i]);
+        }
+        System.out.println(cnt);
+            
+    }
+}
+```
+
+
+
+
+
+### 食堂餐桌
+
+
+
+
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        //数据组数
+        int n = sc.nextInt();
+        for(int k=0; k<n; k++){
+            //餐桌数量
+            int table = sc.nextInt();
+            //餐桌使用情况
+            String stat = sc.next();
+            //存放 0  1 的优先队列
+            PriorityQueue<Integer> pq0 = new PriorityQueue<>();
+            PriorityQueue<Integer> pq1 = new PriorityQueue<>();
+            //将 0 1的餐桌下标存在对应的优先队列
+            for(int i=0; i<table; i++){
+                if(stat.charAt(i)-'0'==0){
+                    pq0.offer(i);
+                }
+                if(stat.charAt(i)-'0'==1){
+                    pq1.offer(i);
+                }
+            }
+            //人数
+            int people = sc.nextInt();
+            //人的性别
+            String come = sc.next();
+            for(int i=0; i<people; i++){
+                int cur = 0;
+                if(come.charAt(i)=='M'){
+                    if(!pq1.isEmpty()){
+                        cur = pq1.poll();
+                    }else{
+                        cur = pq0.poll();
+                        pq1.offer(cur);
+                    }
+                }else if(come.charAt(i)=='F'){
+                    if(!pq0.isEmpty()){
+                        cur = pq0.poll();
+                        pq1.offer(cur);
+                    }else {
+                        cur = pq1.poll();
+                    }
+                }
+                System.out.println(cur+1);
+            }
+        }
+        
+    }
+}
+
+import java.io.*;
+import java.util.*;
+
+public class Main {
+
+    public static void main(String[] args) throws IOException{
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(System.out));
+        int T = Integer.parseInt(reader.readLine());
+        for (int i = 0; i < T; i++) {
+            int N = Integer.parseInt(reader.readLine());
+            String tables = reader.readLine();
+            int M = Integer.parseInt(reader.readLine());
+            String enters = reader.readLine();
+
+            int[] res = solve(tables, enters);
+            for (int r : res) {
+                writer.write(Integer.toString(r));
+                writer.newLine();
+            }
+        }
+        writer.flush();
+    }
+
+    private static int[] solve(String tables, String enters) {
+        List<PriorityQueue<Integer>> pqs = new ArrayList<>(3);
+        pqs.add(new PriorityQueue<>());
+        pqs.add(new PriorityQueue<>());
+        pqs.add(new PriorityQueue<>());
+        for (int i = 0; i < tables.length(); i++) {
+            pqs.get(tables.charAt(i) - '0').add(i);
+        }
+        int[] res = new int[enters.length()];
+        for (int i = 0; i < enters.length(); i++) {
+            int table;
+            if (enters.charAt(i) == 'M') {
+                if (pqs.get(1).isEmpty()) {
+                    table = pqs.get(0).poll();
+                    pqs.get(1).add(table);
+                } else {
+                    table = pqs.get(1).poll();
+                    pqs.get(2).add(table);
+                }
+            } else {
+                if (!pqs.get(0).isEmpty()) {
+                    table = pqs.get(0).poll();
+                    pqs.get(1).add(table);
+                } else {
+                    table = pqs.get(1).poll();
+                    pqs.get(2).add(table);
+                }
+            }
+            res[i] = table + 1;
+        }
+
+        return res;
+    }
+
+}
+```
+
+
+
+
+
+### 最优二叉树II
+
+```
+小团有一个由N个节点组成的二叉树，每个节点有一个权值。定义二叉树每条边的开销为其两端节点权值的乘积，二叉树的总开销即每条边的开销之和。小团按照二叉树的中序遍历依次记录下每个节点的权值，即他记录下了N个数，第i个数表示位于中序遍历第i个位置的节点的权值。之后由于某种原因，小团遗忘了二叉树的具体结构。在所有可能的二叉树中，总开销最小的二叉树被称为最优二叉树。现在，小团请小美求出最优二叉树的总开销。
+
+
+输入描述:
+第一行输入一个整数N（1<=N<=300），表示二叉树的节点数。
+
+第二行输入N个由空格隔开的整数，表示按中序遍历记录下的各个节点的权值，所有权值均为不超过1000的正整数。
+
+
+输出描述:
+输出一个整数，表示最优二叉树的总开销。
+
+
+输入例子1:
+5
+7 6 5 1 3
+
+输出例子1:
+45
+
+例子说明1:
+
+最优二叉树如图所示，总开销为7*1+6*5+5*1+1*3=45。
+```
+
+![image-20210828201202814](Algorithm.assets/image-20210828201202814.png)
+
+
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        int[] num = new int[n];
+        for(int i=0; i<n; i++){
+            num[i] = sc.nextInt();
+        }
+        int[][][] memo = new int[n][n][n];
+        for(int i=0; i<n; i++){
+            for(int j=0; j<n; j++){
+                for(int k=0; k<n; k++){
+                    //区间[l,r]root为k的最小和
+                    memo[i][j][k] = -1;
+                }
+            }
+        }
+        int res = dfs(num, 0, n-1, -1, n, memo);
+        System.out.println(res);
+    }
+    
+    public static int dfs(int[] num, int l, int r, int root, int n, int[][][] memo){
+        if(l>r){
+            return 0;
+        }
+        //[l,r]区间的root已经确定, 且计算过, 直接返回
+        if(root!=-1 && memo[l][r][root]!=-1){
+            return memo[l][r][root];
+        }
+        int res = Integer.MAX_VALUE;
+        //遍历区间以每个位置为根结点计算和
+        for(int i=l; i<=r; i++){
+            int left = dfs(num, l, i-1, i,n,memo);
+            int right = dfs(num, i+1, r, i,n,memo);
+            // root=-1 说明没有父节点 != -1 当前结点*父节点
+            res = Math.min(res, left+right+num[i]*(root==-1?0:num[root]));
+        }
+        if(root>=0){
+            memo[l][r][root] = res;
+        }
+        return res;
+    }
+}
+
+//BufferReader BufferedWriter
+import java.util.*;
+import java.io.*;
+public class Main{
+    public static void main(String[] args) throws Exception{
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(System.out));
+        int n = Integer.parseInt(reader.readLine());
+        int[] num = new int[n];
+        String[] str = reader.readLine().trim().split(" ");
+        for(int i=0; i<n; i++){
+            num[i] = Integer.parseInt(str[i]);
+        }
+        int[][][] memo = new int[n][n][n];
+        for(int i=0; i<n; i++){
+            for(int j=0; j<n; j++){
+                for(int k=0; k<n; k++){
+                    //区间[l,r]root为k的最小和
+                    memo[i][j][k] = -1;
+                }
+            }
+        }
+        int res = dfs(num, 0, n-1, -1, n, memo);
+        writer.write(Integer.toString(res));
+        writer.newLine();
+        writer.flush();
+    }
+    
+    public static int dfs(int[] num, int l, int r, int root, int n, int[][][] memo){
+        if(l>r){
+            return 0;
+        }
+        //[l,r]区间的root已经确定, 且计算过, 直接返回
+        if(root!=-1 && memo[l][r][root]!=-1){
+            return memo[l][r][root];
+        }
+        int res = Integer.MAX_VALUE;
+        //遍历区间以每个位置为根结点计算和
+        for(int i=l; i<=r; i++){
+            int left = dfs(num, l, i-1, i,n,memo);
+            int right = dfs(num, i+1, r, i,n,memo);
+            // root=-1 说明没有父节点 != -1 当前结点*父节点
+            res = Math.min(res, left+right+num[i]*(root==-1?0:num[root]));
+        }
+        if(root>=0){
+            memo[l][r][root] = res;
+        }
+        return res;
+    }
+}
+```
+
+
+
+
+
+
+
+### 糕点
+
+- 思路
+  - 记录做好糕点的最大max最小值min, 剩余可做糕点数量rem, 期望最小值l 最大值r
+  - min<r || max>r 说明最大或最小值已经不满足条件 返回NO
+  - rem = 0 没有剩余可做蛋糕
+    -  必须min=l && max = r 否则返回NO
+  - rem = 1还可以做一个
+    - 如果min!=l && max!= r 返回NO
+  - rem = 2 还可以做两个
+    - 一定可以满足 返回YES
+
+```
+小团的蛋糕铺长期霸占着美团APP中“蛋糕奶茶”栏目的首位，因此总会吸引各路食客前来探店。
+
+小团一天最多可以烤n个蛋糕，每个蛋糕有一个正整数的重量。
+
+早上，糕点铺已经做好了m个蛋糕。
+
+现在，有一个顾客要来买两个蛋糕，他希望买这一天糕点铺烤好的最重的和最轻的蛋糕，并且希望这两个蛋糕的重量恰好为a和b。剩余的n-m个蛋糕可以现烤，请问小团能否满足他的要求？
+
+
+输入描述:
+输入包含多组数据，每组数据两行。
+
+每组数据的第一行包含4个整数，n,m,a,b，空格隔开。这里不保证a和b的大小关系。
+
+接下来一行m个数，空格隔开，代表烤好的蛋糕重量
+
+
+输出描述:
+对于每一组数据，如果可以办到顾客的要求，输出YES，否则输出NO
+
+
+输入例子1:
+4 2 2 4
+3 3
+4 2 2 4
+1 1
+4 2 2 4
+5 5
+4 2 4 2
+2 4
+2 2 2 4
+3 3
+3 2 2 4
+3 3
+3 2 2 4
+3 3
+
+输出例子1:
+YES
+NO
+NO
+YES
+NO
+NO
+NO
+```
+
+
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        while(sc.hasNext()){
+            String[] str = sc.nextLine().trim().split(" ");
+            String[] done = sc.nextLine().trim().split(" ");
+            int[] param = new int[4];
+            for(int i=0; i<4; i++){
+                param[i] = Integer.parseInt(str[i]);
+            }
+            int min = Integer.MAX_VALUE, max = Integer.MIN_VALUE;
+            for(int i=0; i<done.length; i++){
+                int cur = Integer.parseInt(done[i]);
+                min = Math.min(min, cur);
+                max = Math.max(max, cur);
+            }
+            int l = Math.min(param[2], param[3]), r = Math.max(param[2], param[3]);
+            int rem = param[0]-param[1];
+            // 最小最大不符合
+            if(min<l || max > r){
+                System.out.println("NO");
+            }else if(rem==0){
+                if(min!=l || max!=r){
+                    System.out.println("NO");
+                }else{
+                    System.out.println("YES");
+                }
+            }else if(rem==1){
+                if(min!=l && max!=r){
+                    System.out.println("NO");
+                }else{
+                    System.out.println("YES");
+                }
+            }else if(rem>=2){
+                System.out.println("YES");
+            }
+            
+            
+        }
+    }
+}
+```
+
+
+
+
+
+### 晋级人数
+
+- 思路
+  - 最小堆保存较大的x个数, 最大堆保存剩下的n-x个数
+  - 最小堆中0全部出堆
+  - 找出最大堆中和最小堆最小的数的数量
+  - 返回最小堆数量+最大堆和最小堆堆顶元素相同的元素的个数
+
+```
+小团是某综艺节目的策划，他为某个游戏环节设计了一种晋级规则，已知在这个游戏环节中每个人最后都会得到一个分数score_i，显而易见的是，游戏很有可能出现同分的情况，小团计划该环节晋级人数为x人，则将所有人的分数从高到低排序，所有分数大于等于第x个人的分数且得分不为0的人都可以晋级。
+
+请你求出本环节的实际晋级人数。显然这个数字可能是0，如果所有人的得分都是0，则没有人满足晋级条件。
+
+
+输入描述:
+输入第一行包含两个正整数n和x，分别表示参加本环节的人数，和小团指定的x。
+
+输入第二行包含n个整数，每个整数表示一位选手的得分。
+
+
+输出描述:
+输出仅包含一个整数，表示实际晋级人数。
+
+输入例子1:
+5 4 
+0 0 2 3 4
+
+输出例子1:
+3
+```
+
+
+
+```java
+import java.util.*;
+public class Main{
+    /**
+    找到第x个人的分数, 
+        如果分数=0 找到0的右边界
+        如果分数!=0 找到这个相等分数的左边界
+    */
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        int x = sc.nextInt();
+        //保存较大的x个数
+        PriorityQueue<Integer> max = new PriorityQueue<>((a,b)->(a-b));
+        //保存剩下较小的数
+        PriorityQueue<Integer> min = new PriorityQueue<>((a,b)->(b-a));
+        //一开始的x个数都放在max中
+        for(int i=0; i<x; i++){
+            max.offer(sc.nextInt());
+        }
+        //剩下的数
+        for(int i=x; i<n; i++){
+            int cur = sc.nextInt();
+            //cur>max中最小的, 最小数出max入min cur入max
+            if(cur>max.peek()){
+                min.offer(max.poll());
+                max.offer(cur);
+            }else{
+                //cur<=max中最小的 cur入min
+                min.offer(cur);
+            }
+        }
+        //将max中较小的0全部出堆
+        while(!max.isEmpty() && max.peek()==0){
+            max.poll();
+        }
+        //当前max中最小的数
+        int curMin = max.isEmpty()?0:max.peek();
+        int cnt = 0;
+        if(curMin==0){
+            //全为0
+            System.out.println(0);
+        }else{
+            //找到min中和max中最小的数相同的个数
+            while(!min.isEmpty() && min.peek()==curMin){
+                min.poll();
+                cnt++;
+            }
+            //max的size + min中和max最小的数相同的数的个数
+            System.out.println(cnt+max.size());
+        }
+        
+    }
+}
+```
+
+
+
+
+
+### 回转寿司
+
+- 思路: 环形数组连续子数组的最大和
+  - 需要求 连续子数组的最大和 与 最小和
+    - dpMax[j] = Math.max(dpMax[j-1]+arr[j], arr[j]);
+    - dpMin[j] = Math.min(dpMin[j-1]+arr[j], arr[j]);        
+  - 不考虑环形的情况就是最大和
+  - 考虑环形就是sum-最小和
+  - 如果max=0 说明全是负数, 返回0
+  - 否则返回 Math.max(max, sum-min)
+
+```
+小美请小团吃回转寿司。转盘上有N盘寿司围成一圈，第1盘与第2盘相邻，第2盘与第3盘相邻，…，第N-1盘与第N盘相邻，第N盘与第1盘相邻。小团认为第i盘寿司的美味值为A[i]（可能是负值，如果小团讨厌这盘寿司）。现在，小团要在转盘上选出连续的若干盘寿司，使得这些寿司的美味值之和最大（允许不选任何寿司，此时美味值总和为0）。
+
+
+输入描述:
+第一行输入一个整数T（1<=T<=10），表示数据组数。
+
+每组数据占两行，第一行输入一个整数N（1<=N<=10^5）；
+
+第二行输入N个由空格隔开的整数，表示A[1]到A[N]（-10^4<=A[i]<=10^4）。
+
+
+输出描述:
+每组数据输出占一行，输出一个整数，表示连续若干盘寿司的美味值之和的最大值。
+
+
+输入例子1:
+1
+4
+3 -2 4 -1
+
+输出例子1:
+6
+
+例子说明1:
+美味值之和最大连续若干盘寿司为第3盘、第4盘和第1盘。
+```
+
+
+
+```java
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        for(int i=0; i<n; i++){
+            int num = sc.nextInt();
+            int[] arr = new int[num];
+            int[] dpMax = new int[num];
+            int[] dpMin = new int[num];
+            int sum = 0;
+            int max = Integer.MIN_VALUE, min = Integer.MAX_VALUE;
+            for(int j=0; j<num; j++){
+                arr[j] = sc.nextInt();
+                sum += arr[j];
+                if(j==0){
+                    dpMax[j] = Math.max(0,arr[j]);
+                    dpMin[j] = Math.min(0,arr[j]);
+                }else{
+                    dpMax[j] = Math.max(dpMax[j-1]+arr[j], arr[j]);
+                    dpMin[j] = Math.min(dpMin[j-1]+arr[j], arr[j]);
+                }
+                max = Math.max(max, dpMax[j]);
+                min = Math.min(min, dpMin[j]);
+            }
+            //全是负数
+            if(max==0){
+                System.out.println(0);
+            }else{
+                System.out.println(Math.max(max, sum-min));
+            }
+        }
+        System.out.println();
+    }
+}
+```
+
+
+
+
+
+
+
+### 神秘的苹果树
+
+
+
+
+
+
+
+```java
+public class Main {
+
+    public static void main(String[] args){
+        Scanner scanner = new Scanner(System.in);
+        int TreeSize = scanner.nextInt();
+        Map<Integer,List<Integer>> map = new HashMap<>();
+        for(int i=0;i<TreeSize-1;i++){
+            int father = scanner.nextInt();
+            int son = scanner.nextInt();
+            List<Integer> fatherList = map.getOrDefault(father,new ArrayList<Integer>());
+            List<Integer> sonList =map.getOrDefault(son,new ArrayList<Integer>());
+            fatherList.add(son);
+            sonList.add(father);
+            map.put(father,fatherList);
+            map.put(son,sonList);
+        }
+        modify(1,map);  //root是1 这是已知条件
+        //对map里面的元素进行modyfy 使得它只能含有指向儿子的有向图
+
+
+        //开始通过map 进行dfs遍历 并统计 数量
+
+
+        //1.查字典  id 对应的 颜色
+        Map<Integer,Integer> dictionary = new HashMap<>();
+        Map<Integer,Integer> counter = new TreeMap<>();//计数器
+        for(int i=0;i<TreeSize;i++){
+            int color  = scanner.nextInt();
+            dictionary.put(i+1,color);
+
+        }
+        int time = scanner.nextInt();
+        for(int i=0;i<time;i++){
+            int root = scanner.nextInt();
+            Dfs(root,dictionary,counter,map);
+            List<Integer>  list =new ArrayList<>(counter.values());
+            Collections.sort(list);
+            //现在想知道 list.szie-1 这个数量的key
+            for(Map.Entry entry: counter.entrySet()){
+                if(entry.getValue() == list.get(list.size()-1)){
+                    System.out.println(entry.getKey());
+                    break;
+                }
+            }
+            //清空counter
+            counter.clear();
+        }
+
+
+
+    }
+
+    public static void Dfs(int root,Map<Integer,Integer>  dictionary,Map<Integer,Integer>  counter,Map<Integer,List<Integer>> map){
+        //1.把root的color加入
+        int color = dictionary.get(root);
+        counter.put(color,counter.getOrDefault(color,0)+1);
+        for(int child: map.get(root)){
+            Dfs(child,dictionary,counter,map);
+        }
+    }
+
+    public static void  modify(Integer root, Map<Integer,List<Integer>> map){
+        List<Integer> fatherList =  map.get(root);
+        if(fatherList.size()==0){
+            return;//递归的终点
+        }
+        for(Integer child:fatherList){
+            List<Integer> children = map.get(child);
+            children.remove(root);
+            //删除child为键的 邻接数组里面是root的部分
+            map.put(child,children);
+            modify(child,map);
+        }
+    }
+
+}
+
+import java.util.*;
+public class Main{
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        Map<Integer, List<Integer>> map = new HashMap<>();
+        for(int i=0; i<n-1; i++){
+            int father = sc.nextInt();
+            int son = sc.nextInt();
+            map.putIfAbsent(father, new ArrayList<Integer>());
+            map.putIfAbsent(son, new ArrayList<Integer>());
+            /map.get(father).add(son);
+            //map.get(son).add(father);
+        }
+        modify(1,map);//root是1 这是已知条件
+        //对map里面的元素进行modyfy 使得它只能含有指向儿子的有向图
+        //1.查字典  id 对应的 颜色
+        Map<Integer,Integer> colorMap = new HashMap<>();
+        Map<Integer,Integer> cnt = new TreeMap<>();//计数器
+        //每个结点的颜色
+        for(int i=0; i<n; i++){
+            int color = sc.nextInt();
+            colorMap.put(i+1, color);
+        }
+        int query = sc.nextInt();
+        for(int i=0; i<query; i++){
+            int root = sc.nextInt();
+            findColor(root, map, colorMap, cnt);
+            //所有color的数量放入res 排序得到最高的那个数量
+            List<Integer> res = new ArrayList<>(cnt.values());
+            Collections.sort(res);
+            for(Map.Entry<Integer, Integer> entry : cnt.entrySet()){
+                if(entry.getValue()==res.get(res.size()-1)){
+                    System.out.println(entry.getKey());
+                    break;
+                }
+            }
+            cnt.clear();
+        }
+
+
+
+
+    }
+    //统计root为根的数中各种颜色的数量 放入cnt
+    public static void findColor(int root, Map<Integer, List<Integer>> map, 
+                                 Map<Integer, Integer> colorMap,
+                                 Map<Integer, Integer> cnt){
+        int color = colorMap.get(root);
+        //统计
+        cnt.put(color, cnt.getOrDefault(color,0)+1);
+        //遍历子节点 递归统计
+        for(Integer child : map.get(root)){
+            findColor(child, map, colorMap, cnt);
+        }
+    }
+
+    //因为root=1 修改子节点指向父节点的edge
+    public static void modify(Integer root, Map<Integer, List<Integer>> map){
+        List<Integer> fatherList =  map.get(root);
+        if(fatherList.size()==0){
+            return;
+        }
+        //遍历当前root的子节点
+        for(Integer child : fatherList){
+            //子节点的list
+            List<Integer> children = map.get(child);
+            //删除父节点
+            children.remove(root);
+            //覆盖
+            map.put(child, children);
+            //递归修改
+            modify(child, map);
+        }
+    }
+}
+
+
+```
+
+
 
 
 
