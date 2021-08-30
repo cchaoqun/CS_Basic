@@ -1763,7 +1763,7 @@ public int minEditCost (String str1, String str2, int ic, int dc, int rc) {
 
 
 
-
+# 零钱兑换
 
 
 
@@ -6973,7 +6973,164 @@ public int rand10() {
 
 
 
+
+
+
+
+# 矩阵操作
+
+## 矩阵旋转
+
+### 48. 旋转图像
+
+[48. 旋转图像](https://leetcode-cn.com/problems/rotate-image/)
+
+- 思路 顺时针旋转90度 = 矩阵按照中间水平翻转, 再按照对角线翻转
+  - 水平翻转 `[i.j] => [m-1-i, j]` 将 `[0,m/2-1]`按照水平中线 交换
+  - 对角线翻转 `[i.j] => [j,i] ` 按对角线交换, 每行从 j=i+1 开始交换
+  - 合在一起就是 `[i,j] => [j,m-1-i]`
+
+![image-20210830164557487](Algorithm.assets/image-20210830164557487.png)
+
+```java
+public void rotate(int[][] matrix) {
+    // `[i,j] => [j,m-1-i]`
+    if(matrix==null || matrix.length==0 || matrix[0].length==0){
+        return;
+    }
+    int m = matrix.length, n = matrix[0].length;
+    //行交换
+    for(int i=0; i<m/2; i++){
+        for(int j=0; j<n; j++){
+            swapRow(matrix, i, j);
+        }
+    }
+    //对角线交换
+    for(int i=0; i<m; i++){
+        for(int j=i+1; j<n; j++){
+            swapDiag(matrix, i, j);
+        }
+    }
+}
+
+private void swapRow(int[][] nums, int i, int j){
+    int m = nums.length;
+    int temp = nums[i][j];
+    nums[i][j] = nums[m-1-i][j];
+    nums[m-1-i][j] = temp;
+}
+
+private void swapDiag(int[][] nums, int i, int j){
+    int temp = nums[i][j];
+    nums[i][j] = nums[j][i];
+    nums[j][i] = temp;
+}
+```
+
+
+
+
+
+
+
 # 数组
+
+## 前缀和
+
+### 724. 寻找数组的中心下标
+
+[724. 寻找数组的中心下标](https://leetcode-cn.com/problems/find-pivot-index/)
+
+- 思路 前缀和 prefix[i] 表示[0:i-1] 的数组元素和 不包括i 因为i当成了中心点, 所以选择off by 1
+  - 计算前缀和数组
+  - 遍历每个位置作为中心点, 得到左右元素和相等即找到
+  - 否则返回-1
+
+![image-20210830170937217](Algorithm.assets/image-20210830170937217.png)
+
+```java
+public int pivotIndex(int[] nums) {
+    if(nums==null || nums.length==0){
+        return -1;
+    }
+    int n = nums.length;
+    //prefix[i] = sum[0:i-1]
+    int[] prefix = new int[n+1];
+    for(int i=1; i<=n; i++){
+        prefix[i] = nums[i-1]+prefix[i-1];
+    }
+    for(int i=0; i<n; i++){
+        if(prefix[i] == prefix[n]-prefix[i+1]){
+            return i;
+        }
+    }
+
+    return -1;
+
+}
+```
+
+
+
+## 对角线遍历
+
+### 498. 对角线遍历
+
+[498. 对角线遍历](https://leetcode-cn.com/problems/diagonal-traverse/)
+
+- 思路 模拟遍历
+  - `(x+y) % 2 ==0 ` 表示向上的对角线 
+    - `y==n-1`  => x++优先判断 一定向下 因为走到右上顶点优先向下 向右就越界了
+    - `x==0`  => y++ 向右
+    - 向右上 x-- y++
+  - 当走到 x=m-1 || y=0 改变方向 向上 -1 1  先判断 x=m-1 向右
+    - `x==m-1` => y++ 优先判断 一定向右
+    - `y==0` => x++ 向下
+    - 向左下 x+
+
+![image-20210830175015992](Algorithm.assets/image-20210830175015992.png)
+
+```java
+public int[] findDiagonalOrder(int[][] mat) {
+    int m = mat.length;
+    int n = mat[0].length;
+    int[] res = new int[m*n];
+    int index = 0;
+    int x = 0, y = 0;
+    for(int i=0; i<m*n; i++){
+        res[i] = mat[x][y];
+        //右上 对角线的和为偶数
+        if((x+y)%2==0){
+            //先判断是否达到最后一行 必须向下
+            if(y==n-1){
+                x++;
+            }else if(x==0){//向右
+                y++;
+            }else{//右上
+                x--;
+                y++;
+            }
+        }else{//左下, 对角线的和为奇数
+            //先判断是否到达最后一行 必须向右
+            if(x==m-1){
+                y++;
+            }else if(y==0){//第一列 向下
+                x++;
+            }else{
+                //左下
+                x++;
+                y--;
+            }
+        }
+    }
+    return res;
+
+}
+```
+
+
+
+
 
 ## 找出数组特征元素
 
@@ -8636,6 +8793,158 @@ private int backtrack(int row,   int target){
 # 笔试复盘
 
 ## 阿里0827
+
+### 第一题
+
+```java
+public class Ali_p1 {
+    /**
+     *
+     * @param args
+     */
+    /**
+     * n个数, 可以k次任选数组中一个数+1, 使得操作k次以后 使得n个数中最大的数最小
+     * @param num n个数的数组
+     * @param k 表示可以选择一个数+1的次数
+     * @return
+     */
+    public int findMaxWithKAdd(int[] num, long k){
+
+
+        return -1;
+    }
+
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        long k = sc.nextLong();
+        long sum = 0, max = 0;
+        for(int i=0; i<n; i++){
+            long cur = sc.nextLong();
+            sum += cur;
+            max = Math.max(cur, max);
+        }
+        //计算需要使得全部为max
+        long diff = (n-1)*max-(sum-max);
+        if(diff<=0 || k<=diff){
+            System.out.println(max);
+            return;
+        }
+        long rem = k-diff;
+        max = max + (rem/n);
+        if(rem%n>0){
+            max+=1;
+        }
+        System.out.println(max);
+
+    }
+}
+```
+
+
+
+
+
+### 第二题
+
+```java
+public class Ali_P2 {
+
+    @Test
+    public void test(){
+        int[][] matrix = new int[][]{
+                {0,0,0},
+                {1,1,1},
+                {0,0,0}
+        };
+        int[][] pos = new int[][]{
+                {0,0},
+                {0,2},
+                {2,0},
+                {2,2}
+        };
+        int res = findMinMoveTime(matrix, pos);
+        System.out.println(res);
+    }
+    /**
+     *
+     * @param matrix n*m的矩阵, 0代表陆地, 1代表沼泽 2代表军队
+     * @param pos k*2的矩阵, 每行代表一个军队在矩阵的坐标,
+     *            [i,j]位置的军队可以向周围的四个方向移动,移动的耗时都是1
+     * @return 求 矩阵的一个位置使得所有军队都移动到这个位置的时间最短, 所有军队移动到这个位置的时间取决于移动到这个位置时间最长的军队
+     * 转换成求两个军队的最短路径然后除以2?
+     */
+    public int findMinMoveTime(int[][] matrix, int[][] pos){
+        int[][] dir = new int[][]{{1,0},{0,1},{-1,0},{0,-1}};
+        //在矩阵中标记军队为2, 0位陆地, 1为沼泽不能到达
+        for(int i=0; i<pos.length; i++){
+            matrix[pos[i][0]][pos[i][1]] = 2;
+        }
+        //军队数量
+        int k = pos.length;
+        //最后结果
+        int res = Integer.MAX_VALUE;
+        //遍历矩阵
+        for(int i=0; i<matrix.length; i++){
+            for(int j=0; j<matrix[0].length; j++){
+                //从每个0开始BFS遍历到所有军队位置
+                if(matrix[i][j]==0){
+                    int cur = bfs(matrix, dir, k, i, j, res);
+                    //可以到达所有军队
+                    if(cur!=-1){
+                        //保留更小的
+                        res = Math.min(res, cur);
+                    }
+                }
+            }
+        }
+        return res ==Integer.MAX_VALUE?-1:res;
+    }
+
+    public  int bfs(int[][] matrix, int[][] dir, int k, int x, int y, int CurRes){
+        boolean[][] visited = new boolean[matrix.length][matrix[0].length];
+        Deque<int[]> queue = new ArrayDeque<>();
+        queue.offer(new int[]{x,y});
+        visited[x][y] = true;
+        //[x,y]点出发达到所有军队的时间
+        int dist = -1;
+        while(!queue.isEmpty()){
+            dist++;
+            for(int m=queue.size(); m>0; m--){
+                int[] cur = queue.poll();
+                int row = cur[0], col = cur[1];
+                visited[row][col] = true;
+                //遍历到一个军队就-1
+                if(matrix[row][col]==2){
+                    k--;
+                }
+                //所有军队都遍历到了, 返回当前用的时间
+                if(k==0){
+                    return dist;
+                }
+                //将周围四个合法的点加进去, 只加载范围内 并且 没被访问过, 并且不是沼泽
+                for(int i=0; i<dir.length; i++){
+                    int newX = x+dir[i][0];
+                    int newY = y+dir[i][1];
+                    if(inArea(matrix, newX, newY) && !visited[newX][newY] && matrix[newX][newY]!=1){
+                        queue.offer(new int[]{newX, newY});
+                    }
+                }
+            }
+
+        }
+        return -1;
+
+    }
+
+    public boolean inArea(int[][] matrix, int i, int j){
+        return 0<=i && i<matrix.length && 0<=j && j<matrix[0].length;
+    }
+
+}
+```
+
+
 
 
 
