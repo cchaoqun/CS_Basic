@@ -4387,6 +4387,45 @@ private int dfs(TreeNode node, int path){
 
 ![image-20210803015332333](AlgorithmClub.assets/image-20210803015332333.png)
 
+```java
+boolean find = false;
+    public int findDistance(TreeNode root, int p, int q) {
+        if(root==null || p==q){
+            return 0;
+        }
+        
+        int left = findDistance(root.left, p, q);
+        int right = findDistance(root.right, p,q);
+        if(find){
+            return Math.max(left, right);
+        }
+        if(left==0 && right==0){
+            if(root.val==p || root.val==q){
+                
+                return 1;
+            }
+            return 0;
+        }else if(left==0){
+            if(root.val==p||root.val==q){
+                find = true;
+                return right;
+            }
+            return right+1;
+        }else if(right==0){
+            if(root.val==p||root.val==q){
+                find = true;
+                return left;
+            }
+            return left+1;
+        }else{
+            find = true;
+            return right+left;
+
+        }
+        
+    }
+```
+
 
 
 ## 二叉树旋转
@@ -8794,6 +8833,30 @@ private int backtrack(int row,   int target){
 
 
 # 笔试复盘
+
+## 腾讯 0905
+
+### 第五题
+
+一个long[] num 数组. 求出所有的连续子序列,使得 序列中的元素满足  序列的一段是这个序列的最小值, 另一端是次小值, 中间的元素都大于等于两端的这两个元素
+
+求一共有多少个这样的连续子序列
+
+1 3 1 2
+
+以下符合条件一共4种
+
+1 3  
+
+1 3 1
+
+3 1
+
+1 2
+
+符合条件的有4种
+
+
 
 ## 阿里0827
 

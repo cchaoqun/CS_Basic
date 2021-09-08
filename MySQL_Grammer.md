@@ -2,6 +2,27 @@
 
 # MYSQL_LeetCode
 
+## 1565. 按月统计订单数与顾客数
+
+[1565. 按月统计订单数与顾客数](https://leetcode-cn.com/problems/unique-orders-and-customers-per-month/)
+
+```mysql
+select date_format(order_date, '%Y-%m') as month,
+        count(order_id) as order_count,
+        count(distinct(customer_id)) as customer_count
+from Orders
+where invoice > 20
+group by date_format(order_date, '%Y-%m');
+```
+
+
+
+![image-20210908113051405](MySQL_Grammer.assets/image-20210908113051405.png)
+
+
+
+
+
 ## 176. 第二高的薪水
 
 [176. 第二高的薪水](https://leetcode-cn.com/problems/second-highest-salary/)
