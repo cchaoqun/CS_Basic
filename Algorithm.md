@@ -2380,6 +2380,92 @@ public int largestRectangleArea(int[] heights){
 }
 ```
 
+2021/09/11 重新做
+
+- 思路
+  - 对于每个柱子我们希望向左右两边找到第一个严格<当前柱子高度的的柱子的位置 left, right
+  - 这样以当前柱子为高度的矩形长为 right-left+1-2, 高为当前柱子的高度
+  - 维护严格单调递增栈, 碰到当前柱子
+    - 栈空或者柱子高度>栈顶高度或者, 直接入栈
+    - 否则 栈顶柱子找到了右边界即当前柱子<栈顶柱子
+    - 左边界为栈顶柱子, 如果栈空, 左边界为0
+    - 这样以出栈柱子为高度的矩形为 长 i-leftBound 高为出栈柱子高度
+  - 遍历完还可能栈内柱子没有找到右边界, fake一个高度为0 位置为len的柱子
+  - 将栈内的柱子全部poll出来并计算
+
+```java
+public int largestRectangleArea(int[] heights){
+    int len = heights.length;
+    int res = 0;
+    Deque<Integer> stack = new ArrayDeque<>();
+    for(int i=0; i<=len; i++){
+        //当i=len的时候虚拟一个假的高度为0的柱子, 将栈内剩余的柱子全部poll出来
+        int cur = i==len?0:heights[i];
+        while(!stack.isEmpty() && heights[stack.peekLast()]>=cur){
+            int top = stack.pollLast();
+            //
+            int leftBound = stack.isEmpty()?0:stack.peekLast()+1;
+            int wid = i-leftBound;
+            res = Math.max(res, wid*heights[top]);
+        }
+        stack.offerLast(i);
+    }        
+    return res;
+}
+```
+
+
+
+### 85. 最大矩形
+
+[85. 最大矩形](https://leetcode-cn.com/problems/maximal-rectangle/)
+
+- 思路
+  - 将连续的1看成高度为连续1长度的柱子, 
+  - 以每一行为底, 查看对应每个位置柱子高度是多少
+  - 压缩完每一行, 对每一行做一遍求最大矩形面积
+  - 最后得到结果
+
+![image-20210911124158698](Algorithm.assets/image-20210911124158698.png)
+
+```java
+public int maximalRectangle(char[][] matrix) {
+    if(matrix==null || matrix.length==0 || matrix[0].length==0){
+        return 0;
+    }
+    int m = matrix.length, n = matrix[0].length;
+    int[] num = new int[n];
+    int res = 0;
+    for(int i=0; i<m; i++){
+        for(int j=0; j<n; j++){
+            //到i行位置, 每个位置为底的连续的1的长度
+            char c = matrix[i][j];
+            num[j] = c=='0'?0:num[j]+1;
+        }
+        //将连续的1看成高度为连续1长度的柱子
+        res = Math.max(res, maxRecWithArr(num));
+    }
+    return res;
+}
+
+public int maxRecWithArr(int[] num){
+    int res = 0;
+    int n = num.length;
+    Deque<Integer> stack = new ArrayDeque<>();
+    for(int i=0; i<=n; i++){
+        int cur = i==n?0:num[i];
+        while(!stack.isEmpty() && num[stack.peekLast()]>=cur){
+            int top = stack.pollLast();
+            int leftBound = stack.isEmpty()?0:stack.peekLast()+1;
+            int wid = i-leftBound;
+            res = Math.max(res, wid*num[top]);
+        }
+        stack.offerLast(i);
+    }
+    return res;
+}
+```
+
 
 
 ### 42. 接雨水
