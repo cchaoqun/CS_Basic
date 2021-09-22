@@ -1772,6 +1772,299 @@ public int minEditCost (String str1, String str2, int ic, int dc, int rc) {
 
 
 
+# 全排列/子集/Permutation
+
+```
+46. 全排列（中等）
+47. 全排列 II（中等）：思考为什么造成了重复，如何在搜索之前就判断这一支会产生重复；
+39. 组合总和（中等）
+40. 组合总和 II（中等）
+77. 组合（中等）
+78. 子集（中等）
+90. 子集 II（中等）：剪枝技巧同 47 题、39 题、40 题；
+60. 第 k 个排列（中等）：利用了剪枝的思想，减去了大量枝叶，直接来到需要的叶子结点；
+93. 复原 IP 地址（中等）
+
+```
+
+
+
+## 46. 全排列(不含重复)
+
+[46. 全排列](https://leetcode-cn.com/problems/permutations/)
+
+![image-20210922171840499](Algorithm.assets/image-20210922171840499.png)
+
+- 思路 回溯
+  - 每层在所有数字钟挑选一个没选过的数字选择加入到排列中
+  - 之前选过的不能选 boolean visited[]
+  - 排列中的数字数量等于之前数字的集合数量 收集解
+
+```java
+/**
+    backtracking
+        对于排列中的每个位置, 分别有nums.length个选择
+        现在我来到了第i个位置 对于可以放在当前位置的每个元素来说, 我有两种选择
+            (如果当前元素已经放入到路径中, 就跳过)
+            选择: 选择当前元素 --> 当前元素加入到路径中, 去到下一层, 去查看下一个位置可能可以选择的元素(当前选择的元素需要markvisited)
+            不选择: 不选择当前元素 --> 因为当前元素之前尝试加入到路径中, 递归回来, 需要将其从路径中删除
+    每一层做什么:
+        考虑在位置i 加入哪一个元素(这个元素必须之前没有加入过) visited[i] = false
+    有多少种做法
+        nums[] 数组中没有遍历到的都可以加入到当前位置
+        对于nums[]中每一个可以加入到当前位置的元素来说 都可以 加 或者 不加
+    一共做多少层
+        一共有 nums.length 层
+     */
+public List<List<Integer>> permute(int[] nums) {
+    //数组的长度
+    int n = nums.length;
+    //结果的list
+    List<List<Integer>> res = new ArrayList<>();
+    //路径 全过程只有一个
+    List<Integer> path = new ArrayList<>();
+    //标记这个元素是否访问过
+    boolean[] visited = new boolean[n];
+    //backtracking 
+    backTrack(nums, res, path, visited);
+    return res;
+}
+
+//
+private void backTrack(int[] nums, List<List<Integer>> res, List<Integer> path, boolean[] visited){
+    if(path.size()==nums.length){
+        res.add(new ArrayList<>(path));
+        return;
+    }
+
+    for(int i=0; i<nums.length; i++){
+        if(visited[i]){
+            continue;
+        }
+        visited[i] = true;
+        path.add(nums[i]);
+        backTrack(nums, res, path, visited);
+        path.remove(path.size()-1);
+        visited[i] = false;
+    }
+
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+## 47. 全排列 (包含重复)
+
+[47. 全排列 II](https://leetcode-cn.com/problems/permutations-ii/)
+
+![image-20210922172629354](Algorithm.assets/image-20210922172629354.png)
+
+- 思路 回溯
+  - 每层选择的数不能重复, 通过set去重
+
+```java
+public List<List<Integer>> permuteUnique(int[] nums) {
+    //数组的长度
+    int n = nums.length;
+    //结果的list
+    List<List<Integer>> res = new ArrayList<>();
+    //路径 全过程只有一个
+    List<Integer> path = new ArrayList<>();
+    //标记这个元素是否访问过
+    boolean[] visited = new boolean[n];
+    backTrack(nums, res, path, visited);
+    return res;
+}
+
+private void backTrack(int[] nums, List<List<Integer>> res, List<Integer> path, boolean[] visited){
+    //已经是一个全排列
+    if(path.size()==nums.length){
+        res.add(new ArrayList<>(path));
+        return;
+    }
+    //这是当前位置可以放得数, 不能重复 (位置下标是path.size()) 
+    Set<Integer> curLevel = new HashSet<>();
+    //这个for循环是在找 path.size()下标对应的位置可以放的数
+    //  比如初始path.size()==0, 我们在找可以放在下标为0的位置的数, 每一轮尝试放入, 到下一轮会删除掉
+    for(int i=0; i<nums.length; i++){
+        //每一轮放的元素 都不能是之前已经放入path的数 visited[i] = false
+        //每一轮放的元素 都不能相同, 而之前放入到过这个位置的数都存放在了curLevel中, curLevel.contains(nums[i]) = false
+        //只有这两个条件都满足, 当前这个数才可以放到这个位置 否则 continue
+        if(visited[i] || curLevel.contains(nums[i])){
+            continue;
+        }
+        //======选择当前元素=======
+        //当前元素nums[i] 放入路径
+        path.add(nums[i]);
+        //当前位置选择了nums[i] 以后在这个位置不能再放了
+        curLevel.add(nums[i]);
+        //标记访问
+        visited[i] = true;
+        //继续找下一个位置可以放的数
+        backTrack(nums, res, path, visited);
+        //======不选择当前元素======
+        //从路径移除
+        path.remove(path.size()-1);
+        //标记未访问
+        visited[i] = false;
+    }
+}
+```
+
+- swap解法, 每次固定一个位置的值, 交换过去, 并且每层仍然需要保证不重复
+
+```java
+public List<List<Integer>> permuteUnique(int[] nums) {
+    List<List<Integer>> res = new ArrayList<>();
+    int len = nums.length;
+    boolean[] visited = new boolean[len];
+    backtrack(nums, res, visited,0);
+    return res;
+}
+
+public void backtrack(int[] nums, List<List<Integer>> res, boolean[] visited, int index){
+    if(index==nums.length){
+        List<Integer> cur = new ArrayList<>();
+        for(int i:nums){
+            cur.add(i);
+        }
+        res.add(cur);
+        return;
+    }
+    Set<Integer> set = new HashSet<>();
+    for(int i=index; i<nums.length; i++){
+        if(set.contains(nums[i])){
+            continue;
+        }
+        set.add(nums[i]);
+        swap(nums, i, index);
+        backtrack(nums, res, visited, index+1);
+        swap(nums, i, index);
+    }
+}
+
+void swap(int[] nums, int i, int j){
+    int temp = nums[i];
+    nums[i] = nums[j];
+    nums[j] = temp;
+}
+```
+
+
+
+
+
+## 77. 组合
+
+[77. 组合](https://leetcode-cn.com/problems/combinations/)
+
+![image-20210922175058754](Algorithm.assets/image-20210922175058754.png)
+
+```java
+public List<List<Integer>> combine(int n, int k) {
+    List<List<Integer>> res = new ArrayList<>();
+    List<Integer> path = new ArrayList<>();
+    backtrack(res, path, 1, n, k);
+    return res;
+}
+
+private void backtrack(List<List<Integer>> res, List<Integer> path, int start, int n, int k){
+    //已经是一个全排列了
+    if(path.size()==k){
+        res.add(new ArrayList<>(path));
+        return;
+    }
+    //这里是一个优化, 如果当前path中已经添加了的数,+ 剩余可以用的数 < k 那么就剪枝
+    if(path.size()+n-start+1<k){
+        return;
+    }
+    //每次从start开始 往后找可以的k个数的组合, 保证了不重复
+    for(int i=start; i<=n; i++){
+        //选择
+        path.add(i);
+        //下一个数从 i+1开始 因为每个数只能用一次
+        backtrack(res, path, i+1, n, k);
+        //不选择
+        path.remove(path.size()-1);
+    }
+}
+```
+
+
+
+## 40. 组合总和 II
+
+[40. 组合总和 II](https://leetcode-cn.com/problems/combination-sum-ii/)
+
+![image-20210922175700721](Algorithm.assets/image-20210922175700721.png)
+
+```java
+public List<List<Integer>> combinationSum2(int[] candidates, int target) {
+    //数组的长度
+    int n = candidates.length;
+    //结果的list
+    List<List<Integer>> res = new ArrayList<>();
+    //路径 全过程只有一个
+    List<Integer> path = new ArrayList<>();
+    Arrays.sort(candidates);
+    backtrack(candidates,res,path,0,target);
+    return res;
+}
+
+public void backtrack(int[] candidates, List<List<Integer>> res, List<Integer> path, int index, int target){
+    if(target==0){
+        res.add(new ArrayList<>(path));
+        return;
+    }
+    if(index==candidates.length){
+        return;
+    }
+    if(candidates[index]> target){
+        return;
+    }
+    Set<Integer> visited = new HashSet<>();
+    for(int i=index; i<candidates.length; i++){
+        if(visited.contains(candidates[i])){
+            continue;
+        }
+        if(candidates[i]<=target){
+            visited.add(candidates[i]);
+            path.add(candidates[i]);
+            backtrack(candidates,res,path,i+1,target-candidates[i]);
+            path.remove(path.size()-1);
+        }
+    }
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # IP地址 路径 注释
 
 ## 71. 简化路径
