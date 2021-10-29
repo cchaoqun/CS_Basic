@@ -67,6 +67,165 @@ https://www.bilibili.com/video/BV1mW411i7Qf?from=search&seid=4411492801152978707
 ifconfig eth0 <ip地址>
 ```
 
+
+
+## 文件传输
+
+https://www.cnblogs.com/jerrybaby/p/6678300.html
+
+电脑用的是windows的系统，vmware player打开了一台ubuntu虚拟机，想在它们之间传送文件。
+
+**在宿主机上安装FTP文件传输软件**
+
+步骤如下：
+
+**1.**Ubuntu中安装ssh，命令：sudo apt-get install ssh openssh-server
+
+**2.**查看虚拟机中Ubuntu的IP地址，命令：ifconfig
+
+  下图就是虚拟机中Ubuntu的IP地址
+
+　　![img](https://images2015.cnblogs.com/blog/1017254/201704/1017254-20170407151517863-203227223.png)
+
+ 
+
+**3.**回到宿主机中，百度搜索下载FileZilla，其实这就是一个基于FTP协议、在两台电脑之间进行文件传送的软件（上学期做项目做过这方面的功能哈哈哈），另一台电脑可以在远端，在当前情况下，另一台电脑就是装在本地的虚拟机。
+
+FileZilla运行界面如下。主机：就是填入Ubuntu的IP地址（可以只填IP地址，也可以自己补充上IP地址前面的协议）；用户名：Ubuntu下的用户名称；密码：Ubuntu下的用户密码；端口：22。
+
+**4.**点击快速连接之后就会出现本地和远程文件列表，可以互相拖拽文件。
+
+![img](https://images2015.cnblogs.com/blog/1017254/201704/1017254-20170407152342332-1956374213.png)
+
+ 
+
+## 远程登录
+
+```
+ip a 查看虚拟机端口
+获得ip地址
+xshell 登录主机为ip, 端口为22 登录用户名为root 输入密码即可登录
+```
+
+## linux安装ssh服务
+
+查看linux是否安装ssh服务
+
+登录 root 用户下
+
+命令：ssh localhost 
+
+如果提示 "ssh:connect to host localhost port 22:connection refused",就说明没有打开ssh服务或者未安装ssh服务.
+
+(1)如果linux系统是 ubuntu linux 版本,执行命令：sudo apt-get install openssh-server 安装ssh服务，在提示时都选择yes,然后会自动安装ssh服务.
+
+(2)如果linux系统是 centos linux 版本,查看ssh是否安装,执行命令：rpm -qa | grep ssh 
+
+
+
+https://blog.csdn.net/adanjeep/article/details/120676287
+
+ubuntu远程连接失败
+首先查找对应ubuntu服务器的防火墙是否开启？
+防火墙状态查看命令：
+sudo ufw status
+ubuntu虚拟机一般情况下防火墙默认是关闭的；
+防火墙关闭状态显示为Status：inactive；
+若防火墙为开启，显示状态为Status：active
+关闭防火墙命令：sudo ufw disable
+
+执行该命令之后 我们使用sudo ufw status命令来查看当前防火墙的状态如果是inactive说明我们的防火墙已经关闭掉了。
+若防火墙是关闭的，其次可能是Ubuntu系统在安装过程中没有选择安装openssh，那我们来安装一下，再次尝试远程连接
+安装openssh操作步骤：
+1.更新源列表
+sudo apt-get update
+
+2.安装openssh
+sudo apt-get install openssh-server
+
+3.查看ssh服务是否启动
+sudo ps -e |grep ssh    # sshd服务是否开启，查看sshd有进程开启说明启动成功
+
+## 设置允许root用户远程登录
+
+*修改**ssh**配置文件/etc/ssh/sshd_config*
+
+\#LoginGraceTime 120
+
+*PermitRootLogin* *no*
+
+\#StrictModes yes
+
+*把PermitRootLogin* *no* *改为PermitRootLogin yes ，然后重启**ssh**服务。*
+
+service sshd restart或 /etc/init.d/sshd restart
+
+
+
+# Linux 软件安装
+
+## Java
+
+https://www.cnblogs.com/chenyucong/p/5697514.html
+
+
+
+下载放到 ~/ 目录下（即主文件夹）
+
+地址：http://www.oracle.com/technetwork/java/javase/downloads/index.html
+
+进入上面的地址后，点击![img](https://images2015.cnblogs.com/blog/997030/201607/997030-20160722222928076-1843777364.png)
+
+![img](https://images2015.cnblogs.com/blog/997030/201607/997030-20160722222948982-1157731145.png)
+
+ 
+
+二、解压并移动到目录中
+
+打开终端，
+
+解压，sudo tar zxvf ~/jdk-8u101-linux-x64.tar.gz
+
+新建目标目录，cd /opt
+
+　　　　　　　sudo mkdir Java
+
+　　　　　　　sudo mkdir Java/jdk
+
+移动解压的jdk目录，sudo mv ~/jdk1.8.0_101 /opt/Java/jdk
+
+ 
+
+三、配置环境变量
+
+还是在终端，修改bashrc文件，
+
+根据需要，可先备份，cp .bashrc .bash_backup
+
+使用vim打开编辑bashrc文件，vi ~/.bashrc
+
+进入vim后，先跳转到文本的最下方，按“i”，进入编辑模式，插入下面的环境变量属性：
+
+export JAVA_HOME=/opt/Java/jdk
+
+export CLASSPATH=${JAVA_HOME}/lib:.
+
+export PATH=${JAVA_HOME}/bin:$PATH
+
+输入完成后，按ESC退出编辑模式，输入“:w”保存，输入“:q”退出vim
+
+立即生效修改，source ~/.bashrc
+
+ 
+
+四、确定是否成功
+
+终端输入：java -version
+
+显示三行Java的信息，则成功。
+
+
+
 # Linux常用命令
 
 
