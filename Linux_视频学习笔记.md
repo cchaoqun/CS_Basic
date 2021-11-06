@@ -228,11 +228,13 @@ export PATH=${JAVA_HOME}/bin:$PATH
 
 # Linux常用命令
 
+## 目录处理命令
+
 
 
 ![image-20211015115930958](Linux_视频学习笔记.assets/image-20211015115930958.png)
 
-## ls
+### ls
 
 ```bash
 -l	long 显示文件详细信息
@@ -294,7 +296,7 @@ ccq@ccq-virtual-machine:~/Desktop$ ls -i /etc
 
 
 
-## mkdir 创建文件夹
+### mkdir 创建文件夹
 
 
 
@@ -336,25 +338,25 @@ ccq@ccq-virtual-machine:/tmp/test/test1$
 
 
 
-## cd 更换目录
+### cd 更换目录
 
 
 
 ![image-20211015123335875](Linux_视频学习笔记.assets/image-20211015123335875.png)
 
-## pwd 打印当前工作路径
+### pwd 打印当前工作路径
 
 
 
 ![image-20211015123350962](Linux_视频学习笔记.assets/image-20211015123350962.png)
 
-## rmdir 删除空目录
+### rmdir 删除空目录
 
 
 
 ![image-20211015123450199](Linux_视频学习笔记.assets/image-20211015123450199.png)
 
-## cp 复制文件或目录
+### cp 复制文件或目录
 
 ```bash
 -r	复制目录
@@ -370,10 +372,218 @@ ccq@ccq-virtual-machine:/tmp/test$ cp -r /tmp/test/test1 /tmp/changename
 
 ![image-20211015123718678](Linux_视频学习笔记.assets/image-20211015123718678.png)
 
-## mv 改名, 剪切文件
+### mv 改名, 剪切文件
 
 ![image-20211015124546042](Linux_视频学习笔记.assets/image-20211015124546042.png)
 
-## rm 删除目录文件
+### rm 删除目录文件
 
 ![image-20211015124848148](Linux_视频学习笔记.assets/image-20211015124848148.png)
+
+
+
+## 文件处理命令
+
+
+
+### touch 创建文件
+
+```bash
+#在当前目录下床架文件
+touch file.txt
+#在/root目录下创建文件
+touch /root/file.txt
+#创建两个文件 program 和 file
+touch program file
+
+
+```
+
+
+
+### cat 查看文件内容
+
+```bash
+#查看文件内容
+cat file.txt
+#查看文件内容 附带行号
+cat -n file.txt
+```
+
+### tac 倒着查看文件内容(从最后一行到第一行显示)
+
+
+
+### more 分页显示文件内容
+
+```bash
+#分页显示
+more file.txt
+#空格或者f 一页一页往后翻
+#回车一行一行往后翻
+#q退出
+```
+
+
+
+### less 向上翻页
+
+```bash
+#分页显示
+less file.txt
+#pageup 一页一页往上翻
+#上箭头 一行一行往上翻
+# /加上需要搜索的关键字, 然后找到的关键字会被标记, 按n会找到下一个
+
+#空格或者f 一页一页往后翻
+#回车一行一行往后翻
+#q退出
+
+
+```
+
+
+
+### head 显示文件的前几行
+
+```bash
+#显示文件的前几行 (不加-n 默认显示前10行)
+head -n 显示行数 file.txt
+```
+
+
+
+### tail 显示文件最后几行
+
+```bash
+#显示文件的最后几行 (不加-n 默认显示最后10行)
+tail -n 显示行数 file.txt
+#查看文件的时候, 如果文件变化会动态显示
+tail -f file.txt
+
+```
+
+
+
+## 链接命令
+
+### ln  生成文件的链接文件
+
+```bash
+# 生成文件的链接文件
+ln 源文件 源文件的硬连接文件
+ln -s 源文件 源文件的软连接文件
+```
+
+
+
+## 权限管理命令
+
+### chmod
+
+![image-20211102111613279](Linux_视频学习笔记.assets/image-20211102111613279.png)
+
+- 文件权限修改只能是所有者和root用户
+
+- ugoa
+  - u = user 所有者
+  - g = group 所属组
+  - o = other 其他人
+  - a = all 所有人
+- +-=
+  - `+` 增加权限
+  - `-` 减少权限
+  - `=` 变成等号右边的权限
+
+```bash
+[root@localhost tmp]# touch file.txt
+[root@localhost tmp]# ls -l file.txt 
+-rw-r--r--. 1 root root 0 Nov  2 11:18 file.txt
+# 增加 user执行的权限
+[root@localhost tmp]# chmod u+x file.txt 
+[root@localhost tmp]# ls -l file.txt 
+-rwxr--r--. 1 root root 0 Nov  2 11:18 file.txt
+# 增加所属组写的权限
+[root@localhost tmp]# chmod g+w,o-r file.txt 
+[root@localhost tmp]# ls -l file.txt 
+-rwxrw----. 1 root root 0 Nov  2 11:18 file.txt
+#改变所属组的权限为 rwx
+[root@localhost tmp]# chmod g=rwx file.txt 
+[root@localhost tmp]# ls -l file.txt 
+-rwxrwx---. 1 root root 0 Nov  2 11:18 file.txt
+
+```
+
+![image-20211102112231449](Linux_视频学习笔记.assets/image-20211102112231449.png)
+
+```bash
+[root@localhost tmp]# ls -l file.txt 
+-rwxrwx---. 1 root root 0 Nov  2 11:18 file.txt
+[root@localhost tmp]# chmod 640 file.txt 
+[root@localhost tmp]# ls -l file.txt 
+-rw-r-----. 1 root root 0 Nov  2 11:18 file.txt
+
+#-R 递归修改
+#改变一个目录的同时修改该目录下所有目录的权限都为指定的权限
+[root@localhost tmp]# mkdir -p /tmp/a/b
+[root@localhost tmp]# ls -ld /tmp/a
+drwxr-xr-x. 3 root root 15 Nov  2 11:24 /tmp/a
+[root@localhost tmp]# ls -ld /tmp/a/b
+drwxr-xr-x. 2 root root 6 Nov  2 11:24 /tmp/a/b
+# 只修改了/tmp/a的权限
+[root@localhost tmp]# chmod 777 /tmp/a
+[root@localhost tmp]# ls -ld /tmp/a
+drwxrwxrwx. 3 root root 15 Nov  2 11:24 /tmp/a
+[root@localhost tmp]# ls -ld /tmp/a/b
+drwxr-xr-x. 2 root root 6 Nov  2 11:24 /tmp/a/b
+#递归修改/tmp/a下所有目录的权限为777
+[root@localhost tmp]# chmod -R 777 /tmp/a
+[root@localhost tmp]# ls -ld /tmp/a
+drwxrwxrwx. 3 root root 15 Nov  2 11:24 /tmp/a
+[root@localhost tmp]# ls -ld /tmp/a/b
+drwxrwxrwx. 2 root root 6 Nov  2 11:24 /tmp/a/b
+```
+
+
+
+- 实验 root用户创建的文件 普通用户是否可以删除
+
+```bash
+#root用户创建文件夹 /temp
+[root@localhost /]# mkdir /temp
+#root用户创建文件
+[root@localhost /]# touch /temp/testfile
+#修改文件夹权限为777
+[root@localhost /]# chmod 777 /temp
+[root@localhost /]# ls -ld /temp
+drwxrwxrwx. 2 root root 22 Nov  2 11:29 /temp
+[root@localhost /]# ls -l /temp/testfile
+-rw-r--r--. 1 root root 0 Nov  2 11:29 /temp/testfile
+#创建一个新的用户
+[root@localhost /]# useradd ccq1
+#设置password为 123
+[root@localhost /]# passwd ccq1
+Changing password for user ccq1.
+New password: 
+BAD PASSWORD: The password is shorter than 8 characters
+Retype new password: 
+passwd: all authentication tokens updated successfully.
+#改到创建的普通用户ccq1下
+[root@localhost /]# su ccq1
+#删除刚刚创建的文件
+[ccq1@localhost /]$ rm /temp/testfile
+rm: remove write-protected regular empty file ‘/temp/testfile’? y
+#root用户下查看
+[root@localhost /]# cd temp
+# /temp文件夹下的testfile.txt文件被删除了
+[root@localhost temp]# ls
+[root@localhost temp]# 
+
+
+```
+
+- 这里因为 对于/temp文件夹有rwx权限, 所以ccq1普通用户可以删除该目录下的文件
+- 删除文件的权限是对该文件所在的目录具有写权限
+
+![image-20211102114248632](Linux_视频学习笔记.assets/image-20211102114248632.png)
+

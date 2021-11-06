@@ -224,7 +224,137 @@ public class heapSort {
 
 6. Time && Space
 
-  
+##   括号问题
+
+### 32. 最长有效括号
+
+[32. 最长有效括号](https://leetcode-cn.com/problems/longest-valid-parentheses/)
+
+- 思路
+  1. DP定义
+     1. dp[i] = 字符串中以`i`结尾的子串中最长有效连续括号子串的长度
+  2. Base case
+     1. `dp[0] = 0`
+     2. `if s.charAt(i) = '( dp[i] = 0`
+  3. Induction Rule
+     1. `s.charAt(i) = '(' dp[i] = 0`
+     2. `s.charAt(i) = ')' `
+        1. `if s.charAt(i-1) = '(' dp[i] = dp[i-2]+2`
+        2. `if s.charAt(i-1) = ')' && s.charAt(i-dp[i-1]-1)='(' dp[i] = dp[i-dp[i-1]-2]+dp[i-1]+2`
+  4. Fill in Order
+     1. 左到右
+  5. Return what
+     1. 每个位置更新最大长度
+  6. Time & Space
+     1. Time = O(n)
+     2. Space = O(n)
+
+```java
+public int longestValidParentheses(String s) {
+    /**
+        int[] dp = new int[s.length()]
+        dp[i] = i位置结尾的子串中最长的连续配对括号的个数
+        如果 s.charAt(i) == '(' dp[i] = 0
+        如果 s.charAt(i) == ')' 如果 i i-1配对 = dp[i-2]+2
+
+                                如果不配对  i-dp[i-1]-1是'(' = dp[i-1] + dp[i-dp[i-1]-2]+2
+                                dp[i-1] = i-dp[i-1] ~ i配对的长度
+                                dp[i-dp[i-1]-2] = i-dp[i-1]-2结尾的长度
+                                2 dp[i-dp[i-1]-1] 与 i配对长度+2
+         */
+    if(s==null || s.length()==0){
+        return 0;
+    }
+    int len = s.length();
+    int max = 0;
+    int[] dp = new int[len];
+    char[] arr = s.toCharArray();
+    for(int i=1; i<len; i++){
+        //左括号结尾一定不是有效括号
+        if(arr[i]=='('){
+            dp[i] = 0;
+        }else if(arr[i]==')'){
+            // 右括号
+            //前一个是左括号
+            if(arr[i-1]=='('){
+                //配对成2个长度
+                dp[i] = 2;
+                // 加上i-2位置结尾的有效括号长度
+                if(i-2>=0){
+                    dp[i] += dp[i-2];
+                }
+            }else if(arr[i-1]==')') {// 前一个右括号
+                //如果前一个位置结尾的有效括号子串开头前一个位置是'(' 
+                // 这个左括号会和当前位置的')'配对
+                if(i-dp[i-1]-1>=0 && arr[i-dp[i-1]-1]=='('){
+                    //在dp[i-1]结尾的基础上长度+2
+                    dp[i] = dp[i-1]+2;
+                    //再加上与当前括号配对的左括号前一个位置结尾的长度
+                    if(i-dp[i-1]-2>=0){
+                        dp[i] += dp[i-dp[i-1]-2];
+                    }
+                }
+            }
+        }
+        max = Math.max(max, dp[i]);
+    }
+    return max;
+
+
+}
+```
+
+
+
+- 栈
+
+  - ```
+    具体做法是我们始终保持栈底元素为当前已经遍历过的元素中「最后一个没有被匹配的右括号的下标」，这样的做法主要是考虑了边界条件的处理，栈里其他元素维护左括号的下标：
+    
+    对于遇到的每个 ‘(’ ，我们将它的下标放入栈中
+    对于遇到的每个 ‘)’ ，我们先弹出栈顶元素表示匹配了当前右括号：
+    如果栈为空，说明当前的右括号为没有被匹配的右括号，我们将其下标放入栈中来更新我们之前提到的「最后一个没有被匹配的右括号的下标」
+    如果栈不为空，当前右括号的下标减去栈顶元素即为「以该右括号为结尾的最长有效括号的长度」
+    我们从前往后遍历字符串并更新答案即可。
+    ```
+
+  - 
+
+```java
+public int longestValidParentheses(String s) {
+    if(s==null || s.length()==0){
+        return 0;
+    }
+    int len = s.length();
+    int max = 0;
+    Deque<Integer> stack = new ArrayDeque<>();
+    stack.push(-1);
+    for(int i=0; i<len; i++){
+        char cur = s.charAt(i);
+        if(cur=='('){
+            stack.push(i);
+        }else{
+            stack.pop();
+            if(stack.isEmpty()){
+                stack.push(i);
+            }else{
+                max = Math.max(max, i-stack.peek());
+            }
+        }
+    }
+    return max;
+}
+```
+
+
+
+
+
+
+
+
+
+
 
 ## 最大(小)的(删除)子数组(矩阵)和(乘积) 问题
 
@@ -1770,6 +1900,172 @@ public int minEditCost (String str1, String str2, int ic, int dc, int rc) {
 
 
 
+# 分割子集
+
+## 698. 划分为k个相等的子集
+
+[698. 划分为k个相等的子集](https://leetcode-cn.com/problems/partition-to-k-equal-sum-subsets/)
+
+```
+public boolean canPartitionKSubsets(int[] nums, int k) {
+        int n = nums.length;
+        boolean[] visited = new boolean[n];
+        Arrays.sort(nums);
+        int sum = 0;
+        for(int i:nums){
+            sum += i;
+        }
+        if(sum%k!=0){
+            return false;
+        }
+        int target = sum/k;
+        if(nums[n-1]>target){
+            return false;
+        }
+        int start = n-1, curSum = 0;
+        return backtrack(nums, visited, start, k, target, curSum);
+    }
+
+    public boolean backtrack(int[] nums, boolean[] visited, int start, int k, int target, int curSum ){
+        if(k==1){
+            return true;
+        }
+        if(curSum==target){
+            return backtrack(nums, visited, nums.length-1, k-1, target, 0);
+        }
+        for(int i=start; i>=0; i--){
+            if(visited[i]){
+                continue;
+            }
+            if(curSum+nums[i]>target){
+                continue;
+            }
+            visited[i] = true;
+            if(backtrack(nums, visited, i-1, k, target, curSum+nums[i])){
+                return true;
+            }
+            visited[i] = false;
+
+        }
+        return false;
+    }
+```
+
+
+
+## 140. 单词拆分 II
+
+[140. 单词拆分 II](https://leetcode-cn.com/problems/word-break-ii/)
+
+```
+给定一个非空字符串 s 和一个包含非空单词列表的字典 wordDict，在字符串中增加空格来构建一个句子，使得句子中所有的单词都在词典中。返回所有这些可能的句子。
+
+说明：
+
+分隔时可以重复使用字典中的单词。
+你可以假设字典中没有重复的单词。
+示例 1：
+
+输入:
+s = "catsanddog"
+wordDict = ["cat", "cats", "and", "sand", "dog"]
+输出:
+[
+  "cats and dog",
+  "cat sand dog"
+]
+示例 2：
+
+输入:
+s = "pineapplepenapple"
+wordDict = ["apple", "pen", "applepen", "pine", "pineapple"]
+输出:
+[
+  "pine apple pen apple",
+  "pineapple pen apple",
+  "pine applepen apple"
+]
+解释: 注意你可以重复使用字典中的单词。
+示例 3：
+
+输入:
+s = "catsandog"
+wordDict = ["cats", "dog", "sand", "and", "cat"]
+输出:
+[]
+
+来源：力扣（LeetCode）
+链接：https://leetcode-cn.com/problems/word-break-ii
+著作权归领扣网络所有。商业转载请联系官方授权，非商业转载请注明出处。
+```
+
+- dp动态规划 + 回溯
+  - `dp[i] = 以i位置结尾的字符串前缀是否能拆成wordDict中的单词`
+  - 遍历每个位置, 从后往前查看分割后的单词是否在wordDict中, 以及前缀是否也是可以拆成wordDict中的单词
+  - dp[len-1] = true 以后, 回溯
+  - 从最后一个位置往前拆分单词
+
+```java
+class Solution {
+    public List<String> wordBreak(String s, List<String> wordDict) {
+        //单词放到set方便判断单词有效性
+        Set<String> set = new HashSet<>();
+        for(String str : wordDict){
+            set.add(str);
+        }
+        int len = s.length();
+        // dp[i] = 以i位置结尾的字符串前缀是否可以分割
+        boolean[] dp = new boolean[len];
+        for(int i=0; i<len; i++){
+            for(int j=i; j>=0; j--){
+                //从i位置往前依次遍历, 查看是否可以分割[j,i]
+                String word = s.substring(j,i+1);
+                //分割的[j,i]存在, 并且[:j-1]也可以分割
+                if(set.contains(word) && (j-1<0 || (j-1>=0 && dp[j-1]))){
+                    dp[i] = true;
+                    //可以分割就break
+                    break;
+                }
+            }
+        }
+        List<String> res = new ArrayList<>();
+        //整个字符串是可以分割的
+        if(dp[len-1]){
+            //表示当前应该分割[0:end]的字符串前缀
+            int end = len-1;
+            //存放回溯过程分割得到的单词
+            Deque<String> path = new ArrayDeque<>();
+            backtrack(s, end, set, dp, res, path);
+        }
+        return res;
+    }
+
+    public void backtrack(String s, int end, Set<String> set, boolean[] dp, List<String> res, Deque<String> path){
+        //已经分割完得到一个分割结果存放在path中
+        if(end<0){
+            res.add(String.join(" ", path));
+            return;
+        }
+        for(int i=end; i>=0; i--){
+            //从end向前一次尝试分割
+            String word = s.substring(i,end+1);
+            //分割[i,end] 并且 [0:i-1]也可以分割
+            if(set.contains(word) && (i==0 || (i-1>=0 && dp[i-1]))){
+                //头插法 因为从后往前分割的
+                path.addFirst(word);
+                //下一个分割的结尾位置为i-1
+                backtrack(s, i-1, set, dp, res, path);
+                path.removeFirst();
+            }
+        }
+    }
+}
+```
+
+
+
+
+
 
 
 # 全排列/子集/Permutation
@@ -2507,6 +2803,133 @@ public class CombinationCoins {
 
 }
 
+```
+
+
+
+# 区间问题
+
+## 区间重叠
+
+### 56. 合并区间
+
+[56. 合并区间](https://leetcode-cn.com/problems/merge-intervals/)
+
+```
+56. 合并区间
+以数组 intervals 表示若干个区间的集合，其中单个区间为 intervals[i] = [starti, endi] 。请你合并所有重叠的区间，并返回一个不重叠的区间数组，该数组需恰好覆盖输入中的所有区间。
+
+示例 1：
+输入：intervals = [[1,3],[2,6],[8,10],[15,18]]
+输出：[[1,6],[8,10],[15,18]]
+解释：区间 [1,3] 和 [2,6] 重叠, 将它们合并为 [1,6].
+示例 2：
+
+输入：intervals = [[1,4],[4,5]]
+输出：[[1,5]]
+解释：区间 [1,4] 和 [4,5] 可被视为重叠区间。
+
+提示：
+1 <= intervals.length <= 104
+intervals[i].length == 2
+0 <= starti <= endi <= 104
+```
+
+- 排序
+  - 对于二维数组根据每个区间的起始点从小到大排序, 起始点相同的根据右端点从大到小排序
+  - 先拿着第一个区间, 和后面的区间比较
+    - 前一个区间的右端点<当前区间的左端点, 前一个区间加入结果集
+    - 否则合并这两个区间, 合并后的区间右端点取两个区间右端点的较大值
+
+
+
+```java
+class Solution {
+    class Interval{
+        int start;
+        int end;
+        public Interval(int start, int end){
+            this.start = start;
+            this.end = end;
+        }
+    }
+    public int[][] merge(int[][] intervals) {
+        /**
+        1. 按照intervals[i][0]排序
+        2. 手上拿一个区间cur, 根下一个区间next比较
+            List<Interval> res = new ArrayList<>();
+            重叠
+                cur.end >= next.start
+                cur.end = Math.max(cur.end, next.end);
+            不重叠
+                cur.end < next.start
+                list.add(new Intervals(cur.start, cur.end))
+                cur.start = next.start
+                cur.end = next.end
+        3. 别忘了把手上的最后一个interval放入list
+         */
+        if(intervals==null || intervals.length ==0){
+            return intervals;
+        }
+        List<Interval> list = new ArrayList<>();
+        Arrays.sort(intervals, (a,b)->(a[0]==b[0]?b[1]-a[1]:a[0]-b[0]));
+        Interval cur = new Interval(intervals[0][0], intervals[0][1]);
+        for(int i=1; i<intervals.length;i++){
+            int curStart = intervals[i][0];
+            int curEnd = intervals[i][1];
+            if(cur.end < curStart){
+                list.add(new Interval(cur.start, cur.end));
+                cur.start = curStart;
+                cur.end = curEnd;
+            }else{
+                cur.end = Math.max(cur.end, curEnd);
+            }
+        }
+        list.add(new Interval(cur.start, cur.end));
+        int[][] res = new int[list.size()][2];
+        int index = 0;
+        for(Interval i : list){
+            res[index][0] = i.start;
+            res[index++][1] = i.end;
+        }
+        return res;
+    }
+}
+
+class Solution {
+    public int[][] merge(int[][] intervals) {
+        int len = intervals.length;
+        //根据左端点从小到大排序, 左端点相同按照右端点从大到小排序
+        Arrays.sort(intervals, (a,b)->(a[0]==b[0]?b[1]-a[1]:a[0]-b[0]));
+        //初始区间左右端点
+        int l = intervals[0][0], r = intervals[0][1];
+        List<int[]> list = new ArrayList<>();
+        for(int i=1; i<len; i++){
+            //当前区间左右端点
+            int curL = intervals[i][0];
+            int curR = intervals[i][1];
+            //有交集
+            if(r>=curL){
+                //合并
+                r = Math.max(r, curR);
+            }else{
+                //没有交集, 前一个区间加入结果
+                list.add(new int[]{l,r});
+                //更新比较的区间
+                l = curL;
+                r = curR;
+            }
+        }
+        //最后一个区间加入结果
+        list.add(new int[]{l,r});
+        int size = list.size();
+        int[][] res = new int[size][2];
+        for(int i=0; i<size; i++){
+            res[i] = list.get(i);
+        }
+        return res;
+    }
+}
 ```
 
 
@@ -3881,6 +4304,64 @@ private boolean check(TreeNode node){
 
 
 ## 二叉树特征值
+
+### 222. 完全二叉树的节点个数
+
+[222. 完全二叉树的节点个数](https://leetcode-cn.com/problems/count-complete-tree-nodes/)
+
+![image-20211102164048703](Algorithm.assets/image-20211102164048703.png)
+
+```
+222. 完全二叉树的节点个数
+给你一棵 完全二叉树 的根节点 root ，求出该树的节点个数。
+
+完全二叉树 的定义如下：在完全二叉树中，除了最底层节点可能没填满外，其余每层节点数都达到最大值，并且最下面一层的节点都集中在该层最左边的若干位置。若最底层为第 h 层，则该层包含 1~ 2h 个节点。
+
+示例 1：
+
+输入：root = [1,2,3,4,5,6]
+输出：6
+示例 2：
+
+输入：root = []
+输出：0
+示例 3：
+
+输入：root = [1]
+输出：1
+ 
+提示：
+树中节点的数目范围是[0, 5 * 104]
+0 <= Node.val <= 5 * 104
+题目数据保证输入的树是 完全二叉树
+ 
+进阶：遍历树来统计节点是一种时间复杂度为 O(n) 的简单解决方案。你可以设计一个更快的算法吗？
+```
+
+#### 解法一 DFS后序遍历
+
+```java
+public int countNodes(TreeNode root) {
+    if(root==null){
+        return 0;
+    }    
+    int l = countNodes(root.left);
+    int r = countNodes(root.right);
+    return l+r+1;
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### 104. 二叉树的最大深度
 
@@ -5732,6 +6213,119 @@ public boolean canJump(int[] nums) {
     return far>=nums.length-1;
 }
 ```
+
+
+
+## 拓扑排序
+
+### 210. 课程表 II
+
+[210. 课程表 II](https://leetcode-cn.com/problems/course-schedule-ii/)
+
+```
+210. 课程表 II
+现在你总共有 numCourses 门课需要选，记为 0 到 numCourses - 1。给你一个数组 prerequisites ，其中 prerequisites[i] = [ai, bi] ，表示在选修课程 ai 前 必须 先选修 bi 。
+
+例如，想要学习课程 0 ，你需要先完成课程 1 ，我们用一个匹配来表示：[0,1] 。
+返回你为了学完所有课程所安排的学习顺序。可能会有多个正确的顺序，你只要返回 任意一种 就可以了。如果不可能完成所有课程，返回 一个空数组 。
+
+ 
+
+示例 1：
+
+输入：numCourses = 2, prerequisites = [[1,0]]
+输出：[0,1]
+解释：总共有 2 门课程。要学习课程 1，你需要先完成课程 0。因此，正确的课程顺序为 [0,1] 。
+示例 2：
+
+输入：numCourses = 4, prerequisites = [[1,0],[2,0],[3,1],[3,2]]
+输出：[0,2,1,3]
+解释：总共有 4 门课程。要学习课程 3，你应该先完成课程 1 和课程 2。并且课程 1 和课程 2 都应该排在课程 0 之后。
+因此，一个正确的课程顺序是 [0,1,2,3] 。另一个正确的排序是 [0,2,1,3] 。
+示例 3：
+
+输入：numCourses = 1, prerequisites = []
+输出：[0]
+```
+
+- BFS 解题思路
+  - 每行的两个数字表示为 `bi -> ai` 的有向边
+  - 遍历每行, 统计每个course的入度, 以及边的指向关系
+  - 将入度为0的结点放入队列中
+  - BFS遍历, 队列中的结点为入度为0的结点
+  - 每次从队列中取出一个结点, 该结点指向的结点入度减一, 
+  - 如果指向的结点入度减为1则该结点可以放入队列
+  - 取出的结点放入排列中, 
+  - 当得到一个长度为n的排列则得到一个排序否则返回空数组
+
+```java
+class Solution {
+    public int[] findOrder(int numCourses, int[][] prerequisites) {
+        int[] res = new int[numCourses];
+        int index = 0;
+        //每个结点的入度
+        int[] indeg = new int[numCourses];
+        //有向图
+        Map<Integer, List<Integer>> graph = new HashMap<>();
+        //队列存放入度为0的结点
+        Queue<Integer> queue = new LinkedList<>();
+
+        //遍历先修条件构图, 创建有向边
+        for(int[] cur : prerequisites){
+            int a = cur[0];
+            int b = cur[1];
+            //入度+1
+            indeg[a]++;
+            if(!graph.containsKey(b)){
+                graph.put(b, new ArrayList<Integer>());
+            }
+            //有向边
+            graph.get(b).add(a);
+        }
+        //队列放入初始入度为0 的结点
+        for(int i=0; i<numCourses; i++){
+            if(indeg[i]==0){
+                queue.offer(i);
+            }
+        }
+        //BFS遍历
+        while(!queue.isEmpty()){
+            for(int i=queue.size(); i>0; i--){
+                int cur = queue.poll();
+                //当前结点入度为0 可以放入结果数组res
+                res[index++] = cur;
+                //遍历当前结点cur的孩子结点, 所有孩子结点入度-1
+                if(graph.containsKey(cur)){
+                    List<Integer> childs = graph.get(cur);
+                    for(int j=0; j<childs.size(); j++){
+                        //孩子结点
+                        int child = childs.get(j);
+                        //入度-1
+                        indeg[child]--;
+                        //入度为0可以放入队列
+                        if(indeg[child]==0){
+                            queue.offer(child);
+                        }
+                    }
+                }
+
+            }
+        }
+        //遍历结束所有结点都为入度为0 
+        if(index==numCourses){
+            return res;
+        }else{
+            //不存在一个拓扑排序
+            return new int[0];
+        }
+
+    }
+}
+```
+
+
+
+
 
 
 
